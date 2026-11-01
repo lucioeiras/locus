@@ -40,7 +40,7 @@ export function CardPreview({
   const displayItem: LibraryItem =
     title && 'title' in item ? ({ ...item, title } as LibraryItem) : item;
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
-  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [imageViewerUri, setImageViewerUri] = useState<string | null>(null);
   const [imageSourceRect, setImageSourceRect] = useState<ImageSourceRect | null>(null);
   const imageCardRef = useRef<View>(null);
   const musicPlayerRef = useRef<{
@@ -53,12 +53,15 @@ export function CardPreview({
     if (musicPlayerRef.current.playing) musicPlayerRef.current.pause();
     else musicPlayerRef.current.play();
   }, []);
-  const handleOpenImage = useCallback(() => {
-    imageCardRef.current?.measureInWindow((x, y, width, height) => {
+  const handleOpenImage = useCallback((uri: string, source: View | null) => {
+    source?.measureInWindow((x, y, width, height) => {
       setImageSourceRect({ x, y, width, height });
-      setIsImageViewerOpen(true);
+      setImageViewerUri(uri);
     });
   }, []);
+  const handleOpenSavedImage = useCallback(() => {
+    handleOpenImage(item.type === 'image' ? item.image : '', imageCardRef.current);
+  }, [handleOpenImage, item]);
   return (
     <View
       className={`w-full px-6 py-8 min-h-[300px] relative ${
@@ -152,12 +155,19 @@ export function CardPreview({
               item={displayItem}
               hideTitleAndAuthor
               showAudioPlaybackRate
-              onPress={handleOpenImage}
+              onPress={handleOpenSavedImage}
               accessibilityLabel={translate('Open image')}
               accessibilityHint={translate('Opens image preview with zoom controls')}
             />
           ) : (
-            <ItemCard item={displayItem} hideTitleAndAuthor showAudioPlaybackRate />
+            <ItemCard
+              item={displayItem}
+              hideTitleAndAuthor
+              showAudioPlaybackRate
+              onImagePress={
+                item.type === 'tweet' || item.type === 'reddit' ? handleOpenImage : undefined
+              }
+            />
           )}
         </View>
       )}
@@ -187,12 +197,12 @@ export function CardPreview({
           )}
         </View>
       )}
-      {item.type === 'image' && isImageViewerOpen && (
+      {imageViewerUri && (
         <ImageViewerModal
-          uri={item.image}
+          uri={imageViewerUri}
           visible
           sourceRect={imageSourceRect}
-          onClose={() => setIsImageViewerOpen(false)}
+          onClose={() => setImageViewerUri(null)}
         />
       )}
     </View>

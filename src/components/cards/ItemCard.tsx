@@ -43,6 +43,7 @@ type ItemCardProps = {
   onLongPress?: (item: LibraryItem) => void;
   onNoteTextChange?: (itemId: string, text: string) => void;
   onPinnedAspectRatioChange?: (ratio: number) => void;
+  onImagePress?: (uri: string, source: View | null) => void;
 };
 
 /** Maps a library item (from JSON) to the matching card component with edition mode support. */
@@ -65,6 +66,7 @@ export const ItemCard = memo(function ItemCard({
   onLongPress,
   onNoteTextChange,
   onPinnedAspectRatioChange,
+  onImagePress,
 }: ItemCardProps) {
   const { colors: themeColors } = useAppTheme();
   const hasInteractiveTweetMedia =
@@ -166,6 +168,7 @@ export const ItemCard = memo(function ItemCard({
             images={item.images}
             video={item.video}
             hideMedia={compactMedia}
+            onImagePress={onImagePress}
             onPress={interactiveTweetPress ? () => interactiveTweetPress(item) : undefined}
             onLongPress={
               interactiveTweetLongPress ? () => interactiveTweetLongPress(item) : undefined
@@ -181,6 +184,7 @@ export const ItemCard = memo(function ItemCard({
             text={item.text}
             image={item.image}
             hideMedia={compactMedia}
+            onImagePress={onImagePress}
           />
         );
       case 'book':
@@ -252,6 +256,7 @@ export const ItemCard = memo(function ItemCard({
     linkedItem,
     onNoteTextChange,
     onPinnedAspectRatioChange,
+    onImagePress,
     showAudioPlaybackRate,
     stackedAudioControls,
   ]);

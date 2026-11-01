@@ -1,11 +1,11 @@
+import { LocalizedText } from '@/components/LocalizedText';
+import { useAppTheme } from '@/lib/theme';
 import { decodeHTML } from 'entities';
 import { Image as ExpoImage } from 'expo-image';
+import { Play } from 'lucide-react-native';
 import { cssInterop } from 'nativewind';
 import { TiktokLogoIcon } from 'phosphor-react-native';
-import { Play } from 'lucide-react-native';
 import { Text, View } from 'react-native';
-import { useAppTheme } from '@/lib/theme';
-import { LocalizedText } from '@/components/LocalizedText';
 
 cssInterop(ExpoImage, { className: 'style' });
 

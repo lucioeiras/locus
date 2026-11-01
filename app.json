@@ -74,7 +74,7 @@
           "imageWidth": 160,
           "dark": {
             "backgroundColor": "#09090B",
-            "image": "./assets/images/splash-icon.png"
+            "image": "./assets/images/icon-dark.png"
           }
         }
       ],

@@ -1,8 +1,8 @@
 import { Image as ExpoImage } from 'expo-image';
 import { cssInterop } from 'nativewind';
 import { RedditLogoIcon } from 'phosphor-react-native';
-import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 import { decodeHTML } from 'entities';
 
@@ -18,6 +18,7 @@ type RedditProps = {
   text?: string;
   image?: string;
   hideMedia?: boolean;
+  onImagePress?: (uri: string, source: View | null) => void;
 };
 
 export const RedditCard = ({
@@ -27,8 +28,10 @@ export const RedditCard = ({
   text,
   image,
   hideMedia = false,
+  onImagePress,
 }: RedditProps) => {
   const [aspectRatio, setAspectRatio] = useState(1);
+  const imageRef = useRef<View>(null);
 
   const cleanText = cleanRedditDescription(text ? decodeHTML(text) : undefined);
   const cleanTitle = postTitle ? decodeHTML(postTitle) : '';
@@ -48,21 +51,28 @@ export const RedditCard = ({
         <Text className="font-sans-medium text-base text-theme-bright">{cleanTitle}</Text>
 
         {!hideMedia && cleanImage && (
-          <ExpoImage
-            source={{ uri: cleanImage }}
-            className="w-full rounded-lg"
-            style={{
-              aspectRatio: Math.max(0.75, Math.min(1.778, aspectRatio)),
-              maxHeight: 220,
-            }}
-            contentFit="cover"
-            onLoad={(e) => {
-              if (e.source.width && e.source.height) {
-                const ratio = e.source.width / e.source.height;
-                setAspectRatio(Math.max(0.75, Math.min(1.778, ratio)));
-              }
-            }}
-          />
+          <Pressable
+            ref={imageRef}
+            testID="reddit-post-image"
+            onPress={onImagePress ? () => onImagePress(cleanImage, imageRef.current) : undefined}
+            disabled={!onImagePress}
+          >
+            <ExpoImage
+              source={{ uri: cleanImage }}
+              className="w-full rounded-lg"
+              style={{
+                aspectRatio: Math.max(0.75, Math.min(1.778, aspectRatio)),
+                maxHeight: 220,
+              }}
+              contentFit="cover"
+              onLoad={(e) => {
+                if (e.source.width && e.source.height) {
+                  const ratio = e.source.width / e.source.height;
+                  setAspectRatio(Math.max(0.75, Math.min(1.778, ratio)));
+                }
+              }}
+            />
+          </Pressable>
         )}
 
         {cleanText && (

@@ -4,11 +4,20 @@ import { CardPreview } from '@/components/card/CardPreview';
 import type { ImageItem, NoteItem } from '@/lib/library/types';
 
 jest.mock('@/components/card/ImageViewerModal', () => ({
-  ImageViewerModal: ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
+  ImageViewerModal: ({
+    visible,
+    uri,
+    onClose,
+  }: {
+    visible: boolean;
+    uri: string;
+    onClose: () => void;
+  }) => {
     const { Pressable, Text } = jest.requireActual('react-native');
     return visible ? (
       <Pressable accessibilityRole="button" accessibilityLabel="Close image" onPress={onClose}>
         <Text>Image preview</Text>
+        <Text>{uri}</Text>
       </Pressable>
     ) : null;
   },
@@ -94,5 +103,35 @@ describe('CardPreview', () => {
     );
 
     expect(queryByRole('button', { name: 'Open image' })).toBeNull();
+  });
+
+  it('opens the image tapped in a tweet gallery', async () => {
+    const item = {
+      id: 'tweet-gallery',
+      version: 1 as const,
+      type: 'tweet' as const,
+      url: 'https://x.com/user/status/1',
+      author: 'A User',
+      avatar: 'avatar.jpg',
+      text: 'A tweet with images',
+      images: ['first.jpg', 'second.jpg'],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const view = await render(
+      <CardPreview
+        item={item}
+        title=""
+        editedText={item.text}
+        onTextChange={jest.fn()}
+        onTextBlur={jest.fn()}
+        onTextFocus={jest.fn()}
+        onDismissEditingTags={jest.fn()}
+      />
+    );
+
+    fireEvent.press(view.getByTestId('tweet-post-image-1'));
+    expect(view.getByText('Image preview')).toBeTruthy();
+    expect(view.getByText('second.jpg')).toBeTruthy();
   });
 });
