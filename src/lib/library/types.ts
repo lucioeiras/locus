@@ -63,6 +63,8 @@ export type QuoteItem = BaseItem & {
 export type ImageItem = BaseItem & {
   type: 'image';
   image: ImageRef;
+  /** Additional images in this card, including `image` as the first entry. */
+  images?: ImageRef[];
   title?: string;
   note?: string;
 };

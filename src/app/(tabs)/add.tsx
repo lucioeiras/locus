@@ -1,6 +1,8 @@
-import { useAppTheme } from '@/lib/theme';
 import { AddActionIconSlot } from '@/components/AddActionIconSlot';
+import { LocalizedText } from '@/components/LocalizedText';
+import { translate, useLocalization } from '@/lib/i18n';
 import { buildAudioWaveform, normalizeAudioMetering } from '@/lib/library/audioWaveform';
+import { useAppTheme } from '@/lib/theme';
 import {
   AudioModule,
   RecordingPresets,
@@ -11,12 +13,10 @@ import {
 import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { FileText, Clapperboard, Images, LinkIcon, Mic, SquarePen } from 'lucide-react-native';
+import { Clapperboard, FileText, Images, LinkIcon, Mic, SquarePen } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LocalizedText } from '@/components/LocalizedText';
-import { translate, useLocalization } from '@/lib/i18n';
 
 export default function AddElementScreen() {
   const { colors: themeColors } = useAppTheme();
@@ -98,16 +98,22 @@ export default function AddElementScreen() {
       setIsPickingMedia(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: 10,
         quality: 1,
       });
       if (result.canceled || !result.assets?.length) return;
-      const asset = result.assets[0];
       router.replace({
         pathname: '/board',
         params: {
-          newImageUri: asset.uri,
-          newImageFileName: asset.fileName ?? '',
-          newImageMimeType: asset.mimeType ?? '',
+          newImageAssets: JSON.stringify(
+            result.assets.slice(0, 10).map((asset) => ({
+              uri: asset.uri,
+              fileName: asset.fileName ?? '',
+              mimeType: asset.mimeType ?? '',
+              assetId: asset.assetId ?? '',
+            }))
+          ),
           newImageTimestamp: Date.now().toString(),
         },
       });
@@ -126,12 +132,15 @@ export default function AddElementScreen() {
       setIsPickingMedia(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
+        allowsMultipleSelection: true,
+        selectionLimit: 10,
         allowsEditing: false,
         quality: 1,
       });
       if (result.canceled || !result.assets?.length) return;
-      const asset = result.assets[0];
-      if (asset.type === 'video') {
+      const videos = result.assets.filter((asset) => asset.type === 'video');
+      if (videos.length === 1 && result.assets.length === 1) {
+        const asset = videos[0];
         router.replace({
           pathname: '/board',
           params: {
@@ -141,16 +150,26 @@ export default function AddElementScreen() {
             newVideoTimestamp: Date.now().toString(),
           },
         });
-      } else {
+      } else if (videos.length === 0) {
         router.replace({
           pathname: '/board',
           params: {
-            newImageUri: asset.uri,
-            newImageFileName: asset.fileName ?? '',
-            newImageMimeType: asset.mimeType ?? '',
+            newImageAssets: JSON.stringify(
+              result.assets.slice(0, 10).map((asset) => ({
+                uri: asset.uri,
+                fileName: asset.fileName ?? '',
+                mimeType: asset.mimeType ?? '',
+                assetId: asset.assetId ?? '',
+              }))
+            ),
             newImageTimestamp: Date.now().toString(),
           },
         });
+      } else {
+        Alert.alert(
+          translate('Select images or one video'),
+          translate('Choose up to 10 images, or select one video at a time.')
+        );
       }
     } catch (e) {
       Alert.alert(translate('Error'), e instanceof Error ? e.message : 'Failed to pick media');

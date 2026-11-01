@@ -4,13 +4,6 @@ import { FlashList, type FlashListRef, type ListRenderItemInfo } from '@shopify/
 import { BlurTargetView } from 'expo-blur';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Plus, TriangleAlert } from 'lucide-react-native';
-import Sortable from 'react-native-sortables';
-import Animated, {
-  FadeInDown,
-  LinearTransition,
-  useAnimatedStyle,
-  withTiming,
-} from 'react-native-reanimated';
 import {
   createContext,
   forwardRef,
@@ -30,13 +23,21 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  LinearTransition,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Sortable from 'react-native-sortables';
 
 import { BoardAddModals } from '@/components/board/BoardAddModals';
 import { BoardPinnedItems } from '@/components/board/BoardPinnedItems';
 import { BoardTypeFilters } from '@/components/board/BoardTypeFilters';
 import { Button } from '@/components/Button';
 import { ItemCard } from '@/components/cards/ItemCard';
+import { LocalizedText } from '@/components/LocalizedText';
 import { CardSelectionBar } from '@/components/menus/CardSelectionBar';
 import {
   clearOverlayIfCurrent,
@@ -45,18 +46,19 @@ import {
 import { RestoreToast } from '@/components/menus/RestoreToast';
 import { SearchBar } from '@/components/menus/SearchBar';
 import { useLibrary } from '@/hooks/useLibrary';
+import { translate, useLocalization } from '@/lib/i18n';
 import { CARD_TYPE_LABELS, matchesAddedDay, parseDayKey } from '@/lib/library/activity';
-import { parseAudioWaveform } from '@/lib/library/audioWaveform';
-import { isLinkableItem, type LinkableItem } from '@/lib/library/links';
-import { matchesStatus, STATUS_FOLDERS } from '@/lib/library/organize';
-import { getPinnedItems, MAX_PINNED_ITEMS, movePinnedItem } from '@/lib/library/pinned';
+import type { ArchiveRetentionDays } from '@/lib/library/archive';
 import {
   ARCHIVE_RETENTION_STORAGE_KEY,
   archiveUpdates,
   filterArchivedItems,
   isArchived,
 } from '@/lib/library/archive';
-import type { ArchiveRetentionDays } from '@/lib/library/archive';
+import { parseAudioWaveform } from '@/lib/library/audioWaveform';
+import { isLinkableItem, type LinkableItem } from '@/lib/library/links';
+import { matchesStatus, STATUS_FOLDERS } from '@/lib/library/organize';
+import { getPinnedItems, MAX_PINNED_ITEMS, movePinnedItem } from '@/lib/library/pinned';
 import type {
   DeletedItemBackup,
   PickedAudioAsset,
@@ -66,8 +68,6 @@ import type {
 } from '@/lib/library/storage';
 import type { MediaProgressStatus } from '@/lib/library/types';
 import { type LibraryItem, type LibraryItemType } from '@/lib/library/types';
-import { LocalizedText } from '@/components/LocalizedText';
-import { translate, useLocalization } from '@/lib/i18n';
 
 type BoardGridContextType = {
   lastIndices: { col0: number; col1: number };
@@ -94,6 +94,7 @@ type AddControlAction = {
   item: AddControlItem;
   token?: string;
   imageAsset?: PickedImageAsset;
+  imageAssets?: PickedImageAsset[];
   pdfAsset?: PickedPdfAsset;
 };
 
@@ -138,6 +139,7 @@ export default function BoardScreen() {
     newGame,
     newEntertainment,
     newImageUri,
+    newImageAssets,
     newImageFileName,
     newImageMimeType,
     newImageTimestamp,
@@ -168,6 +170,7 @@ export default function BoardScreen() {
     newGame?: string;
     newEntertainment?: string;
     newImageUri?: string;
+    newImageAssets?: string;
     newImageFileName?: string;
     newImageMimeType?: string;
     newImageTimestamp?: string;
@@ -199,6 +202,7 @@ export default function BoardScreen() {
   const [isEntertainmentModalOpen, setIsEntertainmentModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<PickedImageAsset | null>(null);
+  const [pendingImages, setPendingImages] = useState<PickedImageAsset[]>([]);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [pendingPdf, setPendingPdf] = useState<PickedPdfAsset | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -305,7 +309,7 @@ export default function BoardScreen() {
         setIsGameModalOpen(true);
         break;
       case 'image':
-        if (!action.imageAsset) {
+        if (!action.imageAsset && !action.imageAssets?.length) {
           activeAddModalRef.current = null;
           router.replace({
             pathname: '/add',
@@ -316,7 +320,8 @@ export default function BoardScreen() {
           });
           break;
         }
-        setPendingImage(action.imageAsset ?? null);
+        setPendingImages(action.imageAssets ?? (action.imageAsset ? [action.imageAsset] : []));
+        setPendingImage(action.imageAsset ?? action.imageAssets?.[0] ?? null);
         setIsImageModalOpen(true);
         break;
       case 'pdf':
@@ -419,6 +424,7 @@ export default function BoardScreen() {
       case 'image':
         setIsImageModalOpen(false);
         setPendingImage(null);
+        setPendingImages([]);
         break;
       case 'pdf':
         setIsPdfModalOpen(false);
@@ -531,7 +537,21 @@ export default function BoardScreen() {
   }, [newPdfUri, newPdfFileName, newPdfTimestamp, requestControlAction]);
 
   useEffect(() => {
-    const imageToken = newImageTimestamp || newImageUri;
+    const parsedAssets = newImageAssets
+      ? (() => {
+          try {
+            return JSON.parse(newImageAssets) as PickedImageAsset[];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+    const imageToken = newImageTimestamp || newImageUri || newImageAssets;
+    if (parsedAssets.length > 0 && imageToken && imageToken !== lastOpenedImageRef.current) {
+      lastOpenedImageRef.current = imageToken;
+      requestControlAction({ item: 'image', imageAssets: parsedAssets.slice(0, 10) });
+      return;
+    }
     if (newImageUri && imageToken && imageToken !== lastOpenedImageRef.current) {
       lastOpenedImageRef.current = imageToken;
       requestControlAction({
@@ -543,7 +563,14 @@ export default function BoardScreen() {
         },
       });
     }
-  }, [newImageUri, newImageFileName, newImageMimeType, newImageTimestamp, requestControlAction]);
+  }, [
+    newImageUri,
+    newImageAssets,
+    newImageFileName,
+    newImageMimeType,
+    newImageTimestamp,
+    requestControlAction,
+  ]);
 
   useEffect(() => {
     const token = newVideoTimestamp || newVideoUri;
@@ -1372,6 +1399,7 @@ export default function BoardScreen() {
             isAudioModalOpen={isAudioModalOpen}
             isFolderPickerOpen={isFolderPickerOpen}
             pendingImage={pendingImage}
+            pendingImages={pendingImages}
             pendingPdf={pendingPdf}
             pendingVideo={pendingVideo}
             pendingAudio={pendingAudio}

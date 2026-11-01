@@ -63,10 +63,10 @@ function CarouselSlide({
       width: entering ? width.value : viewport.width,
       height: entering ? height.value : viewport.width / aspectRatio,
       transform: [
-        { translateX: translateX.value },
+        { translateX: isActive ? translateX.value : 0 },
         { translateX: carouselDragX.value },
-        { translateY: translateY.value },
-        { scale: scale.value },
+        { translateY: isActive ? translateY.value : 0 },
+        { scale: isActive ? scale.value : 1 },
       ],
     };
   });
