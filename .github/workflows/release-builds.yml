@@ -54,7 +54,7 @@ jobs:
           ANDROID_BUILD_ID="$(jq -r '.[] | select(.platform == "ANDROID") | .id' eas-builds.json)"
           test -n "$ANDROID_BUILD_ID"
           eas build:download --build-id "$ANDROID_BUILD_ID" --non-interactive
-          mv ./*.apk artifacts/astera.apk
+          mv ./*.apk artifacts/locus.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -63,4 +63,4 @@ jobs:
           name: Release build ${{ github.run_number }}
           generate_release_notes: true
           files: |
-            artifacts/astera.apk
+            artifacts/locus.apk

@@ -1,9 +1,0 @@
-{
-  "platforms": ["apple", "android", "web"],
-  "apple": {
-    "modules": ["AsteraLibraryAccessModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.asteralibraryaccess.AsteraLibraryAccessModule"]
-  }
-}

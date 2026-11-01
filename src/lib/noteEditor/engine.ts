@@ -50,7 +50,7 @@ export type NoteEditorEngineOptions = {
 };
 
 export async function createNoteEditor(options: NoteEditorEngineOptions) {
-  const bookmarks = new PluginKey<Map<string, SelectionBookmark>>('astera-selection');
+  const bookmarks = new PluginKey<Map<string, SelectionBookmark>>('locus-selection');
   let sequence = 0;
   let session: NoteEditorSession | undefined;
   let destroyed = false;
@@ -231,7 +231,7 @@ export async function createNoteEditor(options: NoteEditorEngineOptions) {
         }),
       })
   );
-  // Load only the features used by Astera. Besides avoiding extra controls,
+  // Load only the features used by Locus. Besides avoiding extra controls,
   // static feature imports keep the native DOM document in one offline bundle.
   const crepe = new CrepeBuilder({ root: options.root, defaultValue: options.markdown })
     .addFeature(cursor)

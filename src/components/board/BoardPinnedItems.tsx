@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useAnimatedRef } from 'react-native-reanimated';
 import Sortable, {
@@ -10,6 +10,7 @@ import Sortable, {
 import {
   getPinnedDropTarget,
   PINNED_DROP_ANIMATION_DURATION,
+  schedulePinnedReorder,
   schedulePinnedRemoval,
 } from '@/components/board/pinnedDrop';
 import { ItemCard } from '@/components/cards/ItemCard';
@@ -91,13 +92,79 @@ export function PinnedItemPreview({
   );
 }
 
+type PinnedSortableCardProps = {
+  item: LibraryItem;
+  width: number;
+  onPress: Props['onPress'];
+  onAspectRatioChange: (itemId: string, ratio: number) => void;
+};
+
+function arePinnedCardPropsEqual(previous: PinnedSortableCardProps, next: PinnedSortableCardProps) {
+  if (
+    previous.item.id !== next.item.id ||
+    previous.width !== next.width ||
+    previous.onPress !== next.onPress ||
+    previous.onAspectRatioChange !== next.onAspectRatioChange
+  ) {
+    return false;
+  }
+
+  const {
+    pinnedAt: _previousPinnedAt,
+    updatedAt: _previousUpdatedAt,
+    ...previousPreview
+  } = previous.item;
+  const { pinnedAt: _nextPinnedAt, updatedAt: _nextUpdatedAt, ...nextPreview } = next.item;
+  return JSON.stringify(previousPreview) === JSON.stringify(nextPreview);
+}
+
+const PinnedSortableCard = memo(function PinnedSortableCard({
+  item,
+  width,
+  onPress,
+  onAspectRatioChange,
+}: PinnedSortableCardProps) {
+  const handlePress = useCallback(() => onPress(item), [item, onPress]);
+  const handleAspectRatioChange = useCallback(
+    (ratio: number) => onAspectRatioChange(item.id, ratio),
+    [item.id, onAspectRatioChange]
+  );
+
+  return (
+    <View
+      style={{
+        width,
+        height: 100,
+        overflow: item.type === 'music' ? 'visible' : 'hidden',
+      }}
+    >
+      <Sortable.Touchable onTap={handlePress} style={{ width, height: 100 }}>
+        <PinnedItemPreview
+          item={item}
+          width={width}
+          onAspectRatioChange={handleAspectRatioChange}
+        />
+      </Sortable.Touchable>
+    </View>
+  );
+}, arePinnedCardPropsEqual);
+
 export function BoardPinnedItems({ items, isEditing, onPress, onReorder, onRemove }: Props) {
   const containerRef = useRef<View>(null);
   const scrollViewRef = useAnimatedRef<ScrollView>();
   const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
   const draggedItemIdRef = useRef<string | null>(null);
   const dragStartedRef = useRef(false);
+  const isEditingRef = useRef(isEditing);
+  const onPressRef = useRef(onPress);
+  useLayoutEffect(() => {
+    isEditingRef.current = isEditing;
+    onPressRef.current = onPress;
+  }, [isEditing, onPress]);
   const [loadedAspectRatios, setLoadedAspectRatios] = useState<Record<string, number>>({});
+  const handlePinnedCardPress = useCallback((item: LibraryItem) => {
+    if (!isEditingRef.current) onPressRef.current(item);
+  }, []);
   const getCardWidth = useCallback(
     (item: LibraryItem) => {
       const ratio = loadedAspectRatios[item.id] ?? getDefaultAspectRatio(item);
@@ -134,19 +201,19 @@ export function BoardPinnedItems({ items, isEditing, onPress, onReorder, onRemov
       const touch = lastTouchRef.current;
       lastTouchRef.current = null;
       if (!touch) {
-        if (toIndex !== items.findIndex((item) => item.id === itemId)) onReorder(itemId, toIndex);
+        if (toIndex !== items.findIndex((item) => item.id === itemId)) {
+          schedulePinnedReorder(onReorder, itemId, toIndex);
+        }
         return;
       }
 
       containerRef.current?.measureInWindow((x, y, width, height) => {
         const target = getPinnedDropTarget(touch, { x, y, width, height }, toIndex);
         if (target.type === 'remove') {
-          // Keep the sortable row mounted until its drop animation has finished.
-          // Removing its final item immediately can make Sortables measure a
-          // view that has already been unmounted during the return animation.
+          // Let Sortables finish its drop animation before changing its children.
           schedulePinnedRemoval(onRemove, itemId);
         } else if (target.index !== items.findIndex((item) => item.id === itemId)) {
-          onReorder(itemId, target.index);
+          schedulePinnedReorder(onReorder, itemId, target.index);
         }
       });
     },
@@ -155,31 +222,16 @@ export function BoardPinnedItems({ items, isEditing, onPress, onReorder, onRemov
 
   const cardElements = useMemo(
     () =>
-      items.map((item) => {
-        const width = getCardWidth(item);
-        return (
-          <View
-            key={item.id}
-            style={{
-              width,
-              height: 100,
-              overflow: item.type === 'music' ? 'visible' : 'hidden',
-            }}
-          >
-            <Sortable.Touchable
-              onTap={isEditing ? undefined : () => onPress(item)}
-              style={{ width, height: 100 }}
-            >
-              <PinnedItemPreview
-                item={item}
-                width={width}
-                onAspectRatioChange={(ratio) => handleAspectRatioChange(item.id, ratio)}
-              />
-            </Sortable.Touchable>
-          </View>
-        );
-      }),
-    [getCardWidth, handleAspectRatioChange, isEditing, items, onPress]
+      items.map((item) => (
+        <PinnedSortableCard
+          key={item.id}
+          item={item}
+          width={getCardWidth(item)}
+          onPress={handlePinnedCardPress}
+          onAspectRatioChange={handleAspectRatioChange}
+        />
+      )),
+    [getCardWidth, handleAspectRatioChange, handlePinnedCardPress, items]
   );
 
   return (
@@ -213,7 +265,9 @@ export function BoardPinnedItems({ items, isEditing, onPress, onReorder, onRemov
           activationAnimationDuration={120}
           dropAnimationDuration={PINNED_DROP_ANIMATION_DURATION}
           activeItemScale={1.04}
-          inactiveItemOpacity={0.92}
+          inactiveItemOpacity={1}
+          itemEntering={null}
+          itemExiting={null}
           reorderTriggerOrigin="touch"
           bringToFrontWhenActive
           sortEnabled={!isEditing}

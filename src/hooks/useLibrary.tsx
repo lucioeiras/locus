@@ -1,23 +1,24 @@
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
+import type { ArchiveRetentionDays } from '@/lib/library/archive';
+import { ARCHIVE_RETENTION_STORAGE_KEY, getExpiredArchivedIds } from '@/lib/library/archive';
+import { LibraryAssetContext } from '@/lib/library/assetContext';
 import { getDistinctTags, searchCachedItems, type ItemIndexFilter } from '@/lib/library/cache';
 import { getPinnedItems, MAX_PINNED_ITEMS } from '@/lib/library/pinned';
-import { LibraryAssetContext } from '@/lib/library/assetContext';
 import {
+  addAudioToLibrary,
   addBookItemToLibrary,
   addGameItemToLibrary,
   addImageToLibrary,
   addLinkItemToLibrary,
   addMovieItemToLibrary,
-  addTvShowItemToLibrary,
   addMusicItemToLibrary,
   addPdfToLibrary,
-  addVideoToLibrary,
-  addAudioToLibrary,
-  type PickedAudioAsset,
   addTextItemToLibrary,
+  addTvShowItemToLibrary,
+  addVideoToLibrary,
   deleteItemsFromLibrary,
   getFolderDisplayName,
   getLibraryDirectory,
@@ -32,19 +33,20 @@ import {
   restoreItemsToLibrary,
   saveLibrarySource,
   saveRecentFolder,
+  setRelatedItemsInLibrary,
   updateItemInLibrary,
   updateItemsInLibrary,
-  setRelatedItemsInLibrary,
   type AddGameOptions,
   type AddImageOptions,
-  type AddVideoOptions,
   type AddMovieOptions,
-  type AddTvShowOptions,
   type AddPdfOptions,
+  type AddTvShowOptions,
+  type AddVideoOptions,
   type DeletedItemBackup,
   type LibrarySource,
   type LinkUploadItem,
   type LoadResult,
+  type PickedAudioAsset,
   type PickedImageAsset,
   type PickedPdfAsset,
   type PickedVideoAsset,
@@ -54,18 +56,16 @@ import type {
   BookItem,
   GameItem,
   ImageItem,
-  LibraryItemType,
   LibraryItem,
+  LibraryItemType,
   MovieItem,
-  TvShowItem,
   MusicItem,
   NoteItem,
   PdfItem,
-  VideoItem,
   QuoteItem,
+  TvShowItem,
+  VideoItem,
 } from '@/lib/library/types';
-import { ARCHIVE_RETENTION_STORAGE_KEY, getExpiredArchivedIds } from '@/lib/library/archive';
-import type { ArchiveRetentionDays } from '@/lib/library/archive';
 
 export type LibraryState =
   | { status: 'loading' }
@@ -83,7 +83,10 @@ export type LibraryContextValue = {
   selectFolder: (source: LibrarySource) => Promise<void>;
   pickAndOpenFolder: () => Promise<boolean>;
   removeRecentFolder: (id: string) => Promise<void>;
-  addImage: (asset: PickedImageAsset, options?: AddImageOptions) => Promise<ImageItem>;
+  addImage: (
+    asset: PickedImageAsset | PickedImageAsset[],
+    options?: AddImageOptions
+  ) => Promise<ImageItem>;
   addPdf: (asset: PickedPdfAsset, options?: AddPdfOptions) => Promise<PdfItem>;
   addVideo: (asset: PickedVideoAsset, options?: AddVideoOptions) => Promise<VideoItem>;
   addAudio: (
@@ -328,7 +331,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         setSourceInternal(null);
         setHasSavedSource(false);
         try {
-          await AsyncStorage.removeItem('astera:librarySource');
+          await AsyncStorage.removeItem('locus:librarySource');
         } catch {
           // ignore
         }
@@ -377,7 +380,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const currentFolderName = getFolderDisplayName(activeSource);
 
   const addImage = useCallback(
-    async (asset: PickedImageAsset, options?: AddImageOptions) => {
+    async (asset: PickedImageAsset | PickedImageAsset[], options?: AddImageOptions) => {
       const targetSource = source ?? { kind: 'local', name: 'App Library' };
       if (!source) {
         setSource(targetSource);
@@ -668,7 +671,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
       const updatesById = new Map(updatedItems.map((item) => [item.id, item]));
       setLoaded((prev) => {
-        if (prev && prev.state.status === 'ready') {
+        if (
+          prev &&
+          getSourceId(prev.source) === getSourceId(targetSource) &&
+          prev.state.status === 'ready'
+        ) {
           return {
             ...prev,
             state: {

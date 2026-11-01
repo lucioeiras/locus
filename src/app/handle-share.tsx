@@ -80,7 +80,8 @@ export default function HandleShareScreen() {
 
   const finish = () => {
     clearSharedPayloads();
-    router.replace('/board');
+    router.dismissAll();
+    router.replace('/(tabs)/board');
   };
 
   return (

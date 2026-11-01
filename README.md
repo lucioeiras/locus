@@ -1,6 +1,6 @@
-# Astera
+# Locus
 
-**Astera** é uma biblioteca pessoal para guardar e organizar o que você quer ler, assistir, jogar, ouvir ou consultar depois. O app reúne notas, links e mídias em um board pesquisável, com tags, pastas e arquivos que ficam sob controle do usuário.
+**Locus** é uma biblioteca pessoal para guardar e organizar o que você quer ler, assistir, jogar, ouvir ou consultar depois. O app reúne notas, links e mídias em um board pesquisável, com tags, pastas e arquivos que ficam sob controle do usuário.
 
 O aplicativo é desenvolvido com Expo, React Native, TypeScript e Expo Router. A biblioteca pode ficar no armazenamento local do app ou em uma pasta escolhida pelo usuário; cada item é salvo como JSON e imagens e PDFs ficam em diretórios próprios junto aos dados.
 
@@ -40,7 +40,7 @@ Os metadados externos dependem da disponibilidade dos serviços e, em alguns cas
 
 ## Armazenamento da biblioteca
 
-Cada item é um arquivo `<id>.json` na raiz da biblioteca. Arquivos de mídia locais ficam em `images/` e `pdfs/`; os itens apontam para eles com caminhos relativos, como `images/capa.jpg`. As pastas personalizadas também são gravadas na biblioteca, em `.astera-folders.json`.
+Cada item é um arquivo `<id>.json` na raiz da biblioteca. Arquivos de mídia locais ficam em `images/` e `pdfs/`; os itens apontam para eles com caminhos relativos, como `images/capa.jpg`. As pastas personalizadas também são gravadas na biblioteca, em `.locus-folders.json`.
 
 No iOS, as opções de armazenamento incluem a biblioteca do app, **iCloud Drive** (se o container estiver configurado) e uma pasta escolhida no app Arquivos. A biblioteca local do app pode ser acessada pelo app Arquivos em “No Meu iPhone”. O acesso persistente a pastas selecionadas usa um módulo nativo do projeto.
 
@@ -54,8 +54,8 @@ No iOS, as opções de armazenamento incluem a biblioteca do app, **iCloud Drive
 ## Rodar localmente
 
 ```bash
-git clone <URL-do-repositório> astera
-cd astera
+git clone <URL-do-repositório> locus
+cd locus
 bun install
 bun run start
 ```
@@ -82,15 +82,15 @@ Abrir uma nota não altera sua sintaxe. Depois de editar, CommonMark/GFM pode no
 
 O `app.json` define `ios.appleTeamId` como `J7V84PT2S6`, a equipe usada pelo app e pelas extensões. Para usar outra conta Apple Developer, ajuste esse campo antes de gerar o projeto nativo.
 
-Se `bun run ios --device` falhar com `No profiles ... were found`, sincronize a configuração e abra `ios/Astera.xcworkspace` no Xcode:
+Se `bun run ios --device` falhar com `No profiles ... were found`, sincronize a configuração e abra `ios/Locus.xcworkspace` no Xcode:
 
 ```bash
 bunx expo prebuild --platform ios
 ```
 
-Em **Xcode > Settings > Accounts**, entre na conta Apple Developer com acesso à equipe. No projeto `Astera`, confira **Signing & Capabilities** dos três targets: `Astera`, `expo-sharing-extension` e `AsteraControls`. Todos devem usar a mesma equipe e **Automatically manage signing**. A equipe precisa ter acesso aos três Bundle IDs e ao App Group `group.com.diegoeiras.astera`.
+Em **Xcode > Settings > Accounts**, entre na conta Apple Developer com acesso à equipe. No projeto `Locus`, confira **Signing & Capabilities** dos três targets: `Locus`, `expo-sharing-extension` e `LocusControls`. Todos devem usar a mesma equipe e **Automatically manage signing**. A equipe precisa ter acesso aos três Bundle IDs e ao App Group `group.com.diegoeiras.locus`.
 
-Selecione o iPhone como destino e execute o scheme `Astera` uma vez pelo Xcode para criar ou baixar os perfis de desenvolvimento. Depois, volte a usar:
+Selecione o iPhone como destino e execute o scheme `Locus` uma vez pelo Xcode para criar ou baixar os perfis de desenvolvimento. Depois, volte a usar:
 
 ```bash
 bun run ios --device
@@ -107,13 +107,13 @@ bunx eas-cli build --profile development --platform ios
 bunx eas-cli build --profile development --platform android
 ```
 
-O suporte a iCloud depende também de habilitar o container `iCloud.com.diegoeiras.astera` no App ID da conta Apple Developer usada para assinar o app.
+O suporte a iCloud depende também de habilitar o container `iCloud.com.diegoeiras.locus` no App ID da conta Apple Developer usada para assinar o app.
 
 ### Releases no GitHub
 
-Um push para `main` gera um build Android (`.apk`) pelo EAS Build e publica o arquivo como asset de uma GitHub Release. Configure o secret `EXPO_TOKEN` nas configurações do repositório e vincule o projeto ao EAS com `bunx eas-cli init`; o `projectId` gerado precisa estar no `app.json`. Configure as credenciais de assinatura do Android no EAS antes do primeiro build não interativo. O projeto vinculado no painel Expo/EAS deve usar o slug `astera`, conforme o `app.json`.
+Um push para `main` gera um build Android (`.apk`) pelo EAS Build e publica o arquivo como asset de uma GitHub Release. Configure o secret `EXPO_TOKEN` nas configurações do repositório e vincule o projeto ao EAS com `bunx eas-cli init`; o `projectId` gerado precisa estar no `app.json`. Configure as credenciais de assinatura do Android no EAS antes do primeiro build não interativo. O projeto vinculado no painel Expo/EAS deve usar o slug `locus`, conforme o `app.json`.
 
-O perfil `release` incrementa remotamente os números de build. O APK pode ser instalado diretamente em dispositivos Android compatíveis. A identidade nativa é `com.diegoeiras.astera`, com App Group `group.com.diegoeiras.astera`. Builds anteriores com outra identidade são instalações separadas; preferências, cache e metadados de pastas usam o namespace `astera`, sem migração automática. Arquivos de cartões em pastas escolhidas pelo usuário continuam podendo ser abertos.
+O perfil `release` incrementa remotamente os números de build. O APK pode ser instalado diretamente em dispositivos Android compatíveis. A identidade nativa é `com.diegoeiras.locus`, com App Group `group.com.diegoeiras.locus`. Builds anteriores com outra identidade são instalações separadas; preferências, cache e metadados de pastas usam o namespace `locus`, sem migração automática. Arquivos de cartões em pastas escolhidas pelo usuário continuam podendo ser abertos.
 
 ## Chaves de API
 
@@ -151,7 +151,7 @@ As rotas ficam em `src/app/`. Mantenha componentes e lógica reutilizável fora 
 
 ## Ícone e splash screen
 
-Os PNGs originais do símbolo e das camadas Android ficam em `assets/brand/`. As versões usadas pelo app ficam em `assets/images/`: `icon.png` e `icon-dark.png` têm fundos opacos branco e `#09090B`; as camadas Android têm margem para as máscaras do sistema. O Android usa a camada monocromática para ícones temáticos.
+Os PNGs de marca usados pelo app ficam em `assets/images/`: `icon.png`, `icon-dark.png`, `favicon.png`, `splash-icon.png` e as camadas Android. O Android usa a camada monocromática para ícones temáticos.
 
 O splash reutiliza o símbolo transparente sobre fundo branco ou `#09090B`, conforme o tema do sistema, com `imageWidth: 160`. O iOS usa as versões PNG clara e escura definidas em `ios.icon`; o projeto antigo do Icon Composer não é utilizado. Mudanças nesses recursos exigem regenerar os projetos nativos e fazer uma nova build. Confira o splash em uma build release.
 

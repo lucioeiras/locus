@@ -1,5 +1,5 @@
-import { render } from '@testing-library/react-native';
 import TabLayout from '@/app/(tabs)/_layout';
+import { render } from '@testing-library/react-native';
 
 jest.mock('lucide-react-native', () =>
   Object.fromEntries(

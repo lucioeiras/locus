@@ -4,7 +4,6 @@ import { FlashList, type FlashListRef, type ListRenderItemInfo } from '@shopify/
 import { BlurTargetView } from 'expo-blur';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Plus, TriangleAlert } from 'lucide-react-native';
-import Sortable from 'react-native-sortables';
 import {
   createContext,
   forwardRef,
@@ -24,13 +23,21 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  LinearTransition,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Sortable from 'react-native-sortables';
 
 import { BoardAddModals } from '@/components/board/BoardAddModals';
 import { BoardPinnedItems } from '@/components/board/BoardPinnedItems';
 import { BoardTypeFilters } from '@/components/board/BoardTypeFilters';
 import { Button } from '@/components/Button';
 import { ItemCard } from '@/components/cards/ItemCard';
+import { LocalizedText } from '@/components/LocalizedText';
 import { CardSelectionBar } from '@/components/menus/CardSelectionBar';
 import {
   clearOverlayIfCurrent,
@@ -39,18 +46,19 @@ import {
 import { RestoreToast } from '@/components/menus/RestoreToast';
 import { SearchBar } from '@/components/menus/SearchBar';
 import { useLibrary } from '@/hooks/useLibrary';
+import { translate, useLocalization } from '@/lib/i18n';
 import { CARD_TYPE_LABELS, matchesAddedDay, parseDayKey } from '@/lib/library/activity';
-import { parseAudioWaveform } from '@/lib/library/audioWaveform';
-import { isLinkableItem, type LinkableItem } from '@/lib/library/links';
-import { matchesStatus, STATUS_FOLDERS } from '@/lib/library/organize';
-import { getPinnedItems, MAX_PINNED_ITEMS, movePinnedItem } from '@/lib/library/pinned';
+import type { ArchiveRetentionDays } from '@/lib/library/archive';
 import {
   ARCHIVE_RETENTION_STORAGE_KEY,
   archiveUpdates,
   filterArchivedItems,
   isArchived,
 } from '@/lib/library/archive';
-import type { ArchiveRetentionDays } from '@/lib/library/archive';
+import { parseAudioWaveform } from '@/lib/library/audioWaveform';
+import { isLinkableItem, type LinkableItem } from '@/lib/library/links';
+import { matchesStatus, STATUS_FOLDERS } from '@/lib/library/organize';
+import { getPinnedItems, MAX_PINNED_ITEMS, movePinnedItem } from '@/lib/library/pinned';
 import type {
   DeletedItemBackup,
   PickedAudioAsset,
@@ -60,12 +68,11 @@ import type {
 } from '@/lib/library/storage';
 import type { MediaProgressStatus } from '@/lib/library/types';
 import { type LibraryItem, type LibraryItemType } from '@/lib/library/types';
-import { LocalizedText } from '@/components/LocalizedText';
-import { translate, useLocalization } from '@/lib/i18n';
 
 type BoardGridContextType = {
   lastIndices: { col0: number; col1: number };
   totalItems: number;
+  animateReorder: boolean;
   reportItemCol: (index: number, col: number) => void;
 };
 
@@ -87,12 +94,14 @@ type AddControlAction = {
   item: AddControlItem;
   token?: string;
   imageAsset?: PickedImageAsset;
+  imageAssets?: PickedImageAsset[];
   pdfAsset?: PickedPdfAsset;
 };
 
 const BoardGridContext = createContext<BoardGridContextType>({
   lastIndices: { col0: -1, col1: -1 },
   totalItems: 0,
+  animateReorder: false,
   reportItemCol: () => {},
 });
 
@@ -130,6 +139,7 @@ export default function BoardScreen() {
     newGame,
     newEntertainment,
     newImageUri,
+    newImageAssets,
     newImageFileName,
     newImageMimeType,
     newImageTimestamp,
@@ -160,6 +170,7 @@ export default function BoardScreen() {
     newGame?: string;
     newEntertainment?: string;
     newImageUri?: string;
+    newImageAssets?: string;
     newImageFileName?: string;
     newImageMimeType?: string;
     newImageTimestamp?: string;
@@ -191,6 +202,7 @@ export default function BoardScreen() {
   const [isEntertainmentModalOpen, setIsEntertainmentModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<PickedImageAsset | null>(null);
+  const [pendingImages, setPendingImages] = useState<PickedImageAsset[]>([]);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [pendingPdf, setPendingPdf] = useState<PickedPdfAsset | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -203,6 +215,9 @@ export default function BoardScreen() {
   const typeFilterScrollOffsetRef = useRef(0);
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false);
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const [exitingCardIds, setExitingCardIds] = useState<Set<string>>(new Set());
+  const [enteringCardIds, setEnteringCardIds] = useState<Set<string>>(new Set());
+  const [animateReorder, setAnimateReorder] = useState(false);
   const [optimisticPinnedOrder, setOptimisticPinnedOrder] = useState<string[] | null>(null);
   const [restoreBackup, setRestoreBackup] = useState<DeletedItemBackup[] | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -294,7 +309,7 @@ export default function BoardScreen() {
         setIsGameModalOpen(true);
         break;
       case 'image':
-        if (!action.imageAsset) {
+        if (!action.imageAsset && !action.imageAssets?.length) {
           activeAddModalRef.current = null;
           router.replace({
             pathname: '/add',
@@ -305,7 +320,8 @@ export default function BoardScreen() {
           });
           break;
         }
-        setPendingImage(action.imageAsset ?? null);
+        setPendingImages(action.imageAssets ?? (action.imageAsset ? [action.imageAsset] : []));
+        setPendingImage(action.imageAsset ?? action.imageAssets?.[0] ?? null);
         setIsImageModalOpen(true);
         break;
       case 'pdf':
@@ -408,6 +424,7 @@ export default function BoardScreen() {
       case 'image':
         setIsImageModalOpen(false);
         setPendingImage(null);
+        setPendingImages([]);
         break;
       case 'pdf':
         setIsPdfModalOpen(false);
@@ -520,7 +537,21 @@ export default function BoardScreen() {
   }, [newPdfUri, newPdfFileName, newPdfTimestamp, requestControlAction]);
 
   useEffect(() => {
-    const imageToken = newImageTimestamp || newImageUri;
+    const parsedAssets = newImageAssets
+      ? (() => {
+          try {
+            return JSON.parse(newImageAssets) as PickedImageAsset[];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+    const imageToken = newImageTimestamp || newImageUri || newImageAssets;
+    if (parsedAssets.length > 0 && imageToken && imageToken !== lastOpenedImageRef.current) {
+      lastOpenedImageRef.current = imageToken;
+      requestControlAction({ item: 'image', imageAssets: parsedAssets.slice(0, 10) });
+      return;
+    }
     if (newImageUri && imageToken && imageToken !== lastOpenedImageRef.current) {
       lastOpenedImageRef.current = imageToken;
       requestControlAction({
@@ -532,7 +563,14 @@ export default function BoardScreen() {
         },
       });
     }
-  }, [newImageUri, newImageFileName, newImageMimeType, newImageTimestamp, requestControlAction]);
+  }, [
+    newImageUri,
+    newImageAssets,
+    newImageFileName,
+    newImageMimeType,
+    newImageTimestamp,
+    requestControlAction,
+  ]);
 
   useEffect(() => {
     const token = newVideoTimestamp || newVideoUri;
@@ -605,14 +643,23 @@ export default function BoardScreen() {
     try {
       setIsEditing(false);
       setSelectedCardIds(new Set());
+      setExitingCardIds(new Set(idsToDelete));
+      await new Promise<void>((resolve) => setTimeout(resolve, 360));
 
-      const backups = await deleteItems(idsToDelete);
+      setAnimateReorder(true);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const deletion = deleteItems(idsToDelete);
+      setTimeout(() => setAnimateReorder(false), 320);
+      const backups = await deletion;
+      setExitingCardIds(new Set());
 
       if (backups.length > 0) {
         setRestoreBackup(backups);
         setIsToastVisible(true);
       }
     } catch (error) {
+      setAnimateReorder(false);
+      setExitingCardIds(new Set());
       console.error('Failed to delete cards:', error);
       Alert.alert(
         translate('Error'),
@@ -621,14 +668,45 @@ export default function BoardScreen() {
     }
   }, [deleteItems, selectedCardIds]);
 
+  const handleRemoveSelectedFromFolder = useCallback(async () => {
+    if (activeFolderKind !== 'tag' || !activeFolderKey || selectedCardIds.size === 0) return;
+    const selected =
+      state.status === 'ready'
+        ? state.result.items.filter((item) => selectedCardIds.has(item.id))
+        : [];
+    try {
+      await updateItems(
+        selected.map((item) => ({
+          itemId: item.id,
+          updates: { tags: item.tags?.filter((tag) => tag.trim() !== activeFolderKey) ?? [] },
+        }))
+      );
+      handleCancelEdition();
+    } catch (error) {
+      Alert.alert(
+        translate('Could not remove cards from folder'),
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    }
+  }, [activeFolderKind, activeFolderKey, selectedCardIds, state, updateItems, handleCancelEdition]);
+
   const handleRestore = useCallback(async () => {
     if (!restoreBackup || restoreBackup.length === 0) return;
     try {
       const backups = restoreBackup;
       setIsToastVisible(false);
       setRestoreBackup(null);
+      setEnteringCardIds(new Set(backups.map((backup) => backup.id)));
+      setAnimateReorder(true);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await restoreItems(backups);
+      setTimeout(() => {
+        setEnteringCardIds(new Set());
+        setAnimateReorder(false);
+      }, 360);
     } catch (error) {
+      setEnteringCardIds(new Set());
+      setAnimateReorder(false);
       console.error('Failed to restore cards:', error);
       Alert.alert(
         translate('Error'),
@@ -866,9 +944,10 @@ export default function BoardScreen() {
     () => ({
       lastIndices,
       totalItems: displayedItems.length,
+      animateReorder,
       reportItemCol,
     }),
-    [lastIndices, displayedItems.length, reportItemCol]
+    [lastIndices, displayedItems.length, animateReorder, reportItemCol]
   );
 
   const extraData = useMemo(
@@ -893,9 +972,24 @@ export default function BoardScreen() {
     return linkedItems;
   }, [state]);
 
+  const handleNoteTextChange = useCallback(
+    (itemId: string, text: string) => {
+      updateItem(itemId, { text } as Partial<LibraryItem>).catch((error) => {
+        Alert.alert(
+          translate('Error'),
+          error instanceof Error ? error.message : 'Could not update note'
+        );
+      });
+    },
+    [updateItem]
+  );
+
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<LibraryItem>) => (
-      <View style={styles.cardWrapper}>
+      <BoardDeleteAnimatedCard
+        isExiting={exitingCardIds.has(item.id)}
+        isEntering={enteringCardIds.has(item.id)}
+      >
         <ItemCard
           item={item}
           compactAudioWaveform
@@ -905,21 +999,23 @@ export default function BoardScreen() {
               : undefined
           }
           isEditing={isEditing}
-          onNoteTextChange={(itemId, text) => {
-            updateItem(itemId, { text } as Partial<LibraryItem>).catch((error) => {
-              Alert.alert(
-                translate('Error'),
-                error instanceof Error ? error.message : 'Could not update note'
-              );
-            });
-          }}
+          onNoteTextChange={handleNoteTextChange}
           isSelected={selectedCardIds.has(item.id)}
           onPress={handleCardPress}
           onLongPress={handleCardLongPress}
         />
-      </View>
+      </BoardDeleteAnimatedCard>
     ),
-    [isEditing, selectedCardIds, handleCardPress, handleCardLongPress, linkableItems, updateItem]
+    [
+      isEditing,
+      selectedCardIds,
+      exitingCardIds,
+      enteringCardIds,
+      handleCardPress,
+      handleCardLongPress,
+      handleNoteTextChange,
+      linkableItems,
+    ]
   );
 
   const renderHeader = useCallback(() => {
@@ -1170,6 +1266,12 @@ export default function BoardScreen() {
             bottomOffset={60 + insets.bottom}
             onDelete={handleDeleteSelected}
             onAddToFolder={() => setIsFolderPickerOpen(true)}
+            removeFromFolderLabel={
+              activeFolderKind === 'tag' ? 'Remove selected cards from folder' : undefined
+            }
+            onRemoveFromFolder={
+              activeFolderKind === 'tag' ? handleRemoveSelectedFromFolder : undefined
+            }
             pinActionLabel={pinActionLabel}
             onTogglePin={handleToggleSelectedPins}
             archiveActionLabel={archiveActionLabel}
@@ -1210,6 +1312,7 @@ export default function BoardScreen() {
       pinActionLabel,
       handleToggleSelectedPins,
       handleDeleteSelected,
+      handleRemoveSelectedFromFolder,
       handleCancelEdition,
       handleRestore,
       handleDismissToast,
@@ -1263,6 +1366,8 @@ export default function BoardScreen() {
                       showsVerticalScrollIndicator={false}
                       keyboardDismissMode="on-drag"
                       keyboardShouldPersistTaps="handled"
+                      onScrollBeginDrag={() => setAnimateReorder(false)}
+                      onMomentumScrollBegin={() => setAnimateReorder(false)}
                       refreshControl={
                         <RefreshControl
                           refreshing={refreshing}
@@ -1270,7 +1375,7 @@ export default function BoardScreen() {
                           tintColor={themeColors.secondary}
                         />
                       }
-                      ListHeaderComponent={renderHeader}
+                      ListHeaderComponent={renderHeader()}
                       ListEmptyComponent={renderEmpty}
                     />
                   </BoardGridContext.Provider>
@@ -1294,6 +1399,7 @@ export default function BoardScreen() {
             isAudioModalOpen={isAudioModalOpen}
             isFolderPickerOpen={isFolderPickerOpen}
             pendingImage={pendingImage}
+            pendingImages={pendingImages}
             pendingPdf={pendingPdf}
             pendingVideo={pendingVideo}
             pendingAudio={pendingAudio}
@@ -1323,9 +1429,36 @@ type CellRendererProps = {
   [key: string]: any;
 };
 
+function BoardDeleteAnimatedCard({
+  children,
+  isExiting,
+  isEntering,
+}: {
+  children: React.ReactNode;
+  isExiting: boolean;
+  isEntering: boolean;
+}) {
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      opacity: withTiming(isExiting ? 0 : 1, { duration: 360 }),
+      transform: [{ scale: withTiming(isExiting ? 0.92 : 1, { duration: 360 }) }],
+    }),
+    [isExiting]
+  );
+
+  return (
+    <Animated.View
+      style={[styles.cardWrapper, animatedStyle]}
+      entering={isEntering ? FadeInDown.duration(320) : undefined}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 const CellRenderer = forwardRef<View, CellRendererProps>((props, ref) => {
   const { style, children, index, ...rest } = props;
-  const { reportItemCol } = useContext(BoardGridContext);
+  const { reportItemCol, animateReorder } = useContext(BoardGridContext);
   const isLeftColumn = !style?.left || style.left < 1;
 
   useEffect(() => {
@@ -1335,9 +1468,14 @@ const CellRenderer = forwardRef<View, CellRendererProps>((props, ref) => {
   }, [index, isLeftColumn, reportItemCol]);
 
   return (
-    <View ref={ref} {...rest} style={[style]}>
+    <Animated.View
+      ref={ref}
+      {...rest}
+      style={[style]}
+      layout={animateReorder ? LinearTransition.duration(260) : undefined}
+    >
       {children}
-    </View>
+    </Animated.View>
   );
 });
 

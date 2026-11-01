@@ -26,9 +26,9 @@ type Props = {
 export function AddToFolderModal({ visible, items, onClose, onAdded }: Props) {
   const { colors: themeColors } = useAppTheme();
   useLocalization();
-  const { source, state, updateItem } = useLibrary();
+  const { source, state, updateItems } = useLibrary();
   const insets = useSafeAreaInsets();
-  const storageKey = `astera:folders:${getSourceId(source)}`;
+  const storageKey = `locus:folders:${getSourceId(source)}`;
   const [saved, setSaved] = useState<{ key: string; names: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -64,22 +64,26 @@ export function AddToFolderModal({ visible, items, onClose, onAdded }: Props) {
   const addToFolder = async (name: string) => {
     if (saving || items.length === 0) return;
     setSaving(true);
-    const updatedItems: LibraryItem[] = [];
-    try {
-      for (const item of items) {
-        if (item.tags?.some((tag) => tag.trim() === name)) continue;
-        updatedItems.push(await updateItem(item.id, { tags: [...(item.tags ?? []), name] }));
-      }
-      onAdded?.(updatedItems);
-      onClose();
-    } catch (error) {
+    const updates = items.flatMap((item) =>
+      item.tags?.some((tag) => tag.trim() === name)
+        ? []
+        : [{ itemId: item.id, updates: { tags: [...(item.tags ?? []), name] } }]
+    );
+    const updatedById = new Map(
+      updates.map(({ itemId, updates: itemUpdates }) => [itemId, itemUpdates])
+    );
+    const updatedItems = items.map((item) => ({ ...item, ...updatedById.get(item.id) }));
+
+    onAdded?.(updatedItems);
+    setSaving(false);
+    onClose();
+
+    void updateItems(updates).catch((error: unknown) => {
       Alert.alert(
         translate('Could not add all cards'),
         error instanceof Error ? error.message : 'Please try again.'
       );
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   const createFolder = async (name: string): Promise<boolean> => {
@@ -117,13 +121,19 @@ export function AddToFolderModal({ visible, items, onClose, onAdded }: Props) {
               const taggedItems = libraryItems.filter((item) =>
                 item.tags?.some((tag) => tag.trim() === name)
               );
-              for (const item of taggedItems) {
-                await updateItem(item.id, {
-                  tags: item.tags?.filter((tag) => tag.trim() !== name) ?? [],
-                });
-              }
               await saveLibraryFolders(source, next);
               setSaved({ key: storageKey, names: next });
+
+              const updates = taggedItems.map((item) => ({
+                itemId: item.id,
+                updates: { tags: item.tags?.filter((tag) => tag.trim() !== name) ?? [] },
+              }));
+              void updateItems(updates).catch((error: unknown) => {
+                Alert.alert(
+                  translate('Could not remove folder from all cards'),
+                  error instanceof Error ? error.message : 'Please try again.'
+                );
+              });
             } catch {
               Alert.alert(translate('Could not delete folder'), translate('Please try again.'));
             }

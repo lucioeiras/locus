@@ -1,5 +1,0 @@
-{
-  "platforms": ["apple", "android", "web"],
-  "apple": { "modules": ["AsteraAudioTranscriptionModule"] },
-  "android": { "modules": ["expo.modules.asteraaudiotranscription.AsteraAudioTranscriptionModule"] }
-}

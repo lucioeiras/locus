@@ -48,7 +48,7 @@ async function getJson(url: string, signal?: AbortSignal): Promise<unknown | nul
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'Lrclib-Client': 'Astera/1.0 (https://github.com/lucioeiras)',
+        'Lrclib-Client': 'Locus/1.0 (https://github.com/lucioeiras)',
       },
     });
 

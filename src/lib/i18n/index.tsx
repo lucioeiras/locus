@@ -24,7 +24,7 @@ export {
   translate,
 } from './locale';
 
-const LANGUAGE_STORAGE_KEY = '@astera_language_preference';
+const LANGUAGE_STORAGE_KEY = '@locus_language_preference';
 type LocalizationContextValue = {
   language: AppLanguage;
   preference: LanguagePreference;

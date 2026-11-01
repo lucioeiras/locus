@@ -73,7 +73,7 @@ dom.window.scrollBy = () => {};
 const { createNoteEditor } = await import('../../../lib/noteEditor/engine.ts');
 const root = document.createElement('div');
 const editorScroller = document.createElement('div');
-editorScroller.className = 'astera-note-editor';
+editorScroller.className = 'locus-note-editor';
 editorScroller.append(root);
 document.body.append(editorScroller);
 let imported = 0;

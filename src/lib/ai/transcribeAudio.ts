@@ -20,7 +20,7 @@ try {
 try {
   converterModule =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('@/../modules/astera-audio-transcription/src/AsteraAudioTranscriptionModule').default;
+    require('@/../modules/locus-audio-transcription/src/LocusAudioTranscriptionModule').default;
 } catch {
   // The local converter is registered in iOS and Android development builds.
 }

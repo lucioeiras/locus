@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getActiveLocale } from '@/lib/i18n/locale';
 
-export const STORAGE_KEY_TMDB_API_KEY = '@astera_tmdb_api_key';
+export const STORAGE_KEY_TMDB_API_KEY = '@locus_tmdb_api_key';
 
 export type TmdbMovieResult = {
   id: number;

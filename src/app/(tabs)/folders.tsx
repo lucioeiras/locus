@@ -1,7 +1,7 @@
 import { useAppTheme } from '@/lib/theme';
 import { router, useFocusEffect } from 'expo-router';
 import { Plus } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,7 +20,7 @@ import { translate, useLocalization } from '@/lib/i18n';
 export default function OrganizeScreen() {
   const { colors: themeColors } = useAppTheme();
   useLocalization();
-  const { source, state, setSearchQuery, clearSearchTag, updateItem } = useLibrary();
+  const { source, state, setSearchQuery, clearSearchTag, updateItems } = useLibrary();
   const [saved, setSaved] = useState<{
     source: string;
     names: string[];
@@ -66,23 +66,25 @@ export default function OrganizeScreen() {
     }, [insets.bottom, saved?.source, setFloatingTabOverlay, sourceId, themeColors.foreground])
   );
 
-  useEffect(() => {
-    let active = true;
-    getLibraryFolders(source)
-      .then((names) => {
-        if (!active) return;
-        setSaved({ source: sourceId, names });
-      })
-      .catch(() => {
-        if (active) {
-          setSaved({ source: sourceId, names: [] });
-          Alert.alert(translate('Could not load folders'), translate('Please try again.'));
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [source, sourceId]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getLibraryFolders(source)
+        .then((names) => {
+          if (!active) return;
+          setSaved({ source: sourceId, names });
+        })
+        .catch(() => {
+          if (active) {
+            setSaved({ source: sourceId, names: [] });
+            Alert.alert(translate('Could not load folders'), translate('Please try again.'));
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, [source, sourceId])
+  );
 
   const openFolder = (kind: 'status' | 'tag', key: string) => {
     setSearchQuery('');
@@ -124,13 +126,19 @@ export default function OrganizeScreen() {
             const taggedItems = items.filter((item) =>
               item.tags?.some((tag) => tag.trim() === name)
             );
-            for (const item of taggedItems) {
-              await updateItem(item.id, {
-                tags: item.tags?.filter((tag) => tag.trim() !== name) ?? [],
-              });
-            }
             await saveLibraryFolders(source, next);
             setSaved({ source: sourceId, names: next });
+
+            const updates = taggedItems.map((item) => ({
+              itemId: item.id,
+              updates: { tags: item.tags?.filter((tag) => tag.trim() !== name) ?? [] },
+            }));
+            void updateItems(updates).catch((error: unknown) => {
+              Alert.alert(
+                translate('Could not remove folder from all cards'),
+                error instanceof Error ? error.message : 'Please try again.'
+              );
+            });
           } catch {
             Alert.alert(translate('Could not delete folder'), translate('Please try again.'));
           }

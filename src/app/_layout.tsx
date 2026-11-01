@@ -22,7 +22,7 @@ import { LocalizationProvider } from '@/lib/i18n';
 
 SplashScreen.preventAutoHideAsync();
 
-const controlStorage = new ExtensionStorage('group.com.diegoeiras.astera');
+const controlStorage = new ExtensionStorage('group.com.diegoeiras.locus');
 
 function openControlDestination(item: string, token: string) {
   const supportedItems = new Set([
@@ -100,7 +100,7 @@ function RootNavigator() {
 
     try {
       const url = new URL(linkingURL);
-      if (url.protocol !== 'astera:') return;
+      if (url.protocol !== 'locus:') return;
 
       const controlItem = url.searchParams.get('controlItem');
       const route = url.pathname.replace(/^\/+/, '');

@@ -2,7 +2,7 @@
 
 ## Sobre o aplicativo
 
-Astera é uma biblioteca pessoal, offline-first, para salvar e organizar notas, links, publicações, arquivos e mídias que o usuário quer consultar depois. O projeto usa Expo SDK 57, React Native 0.86, TypeScript, Expo Router e NativeWind. Priorize interações mobile, desempenho e compatibilidade entre iOS, Android e web.
+Locus é uma biblioteca pessoal, offline-first, para salvar e organizar notas, links, publicações, arquivos e mídias que o usuário quer consultar depois. O projeto usa Expo SDK 57, React Native 0.86, TypeScript, Expo Router e NativeWind. Priorize interações mobile, desempenho e compatibilidade entre iOS, Android e web.
 
 O board permite pesquisar e filtrar cartões por tipo, tag e andamento. Há pastas personalizadas, notas e citações relacionadas a outros cartões, detalhes e avaliações de mídias, diário de leitura, compartilhamento com o app, importação de imagens/PDFs e geração opcional de tags com IA local. Metadados podem vir de Google Books/Open Library/BrasilAPI, iTunes/LRCLIB, TMDB, RAWG e páginas web; resultados externos dependem de rede e, em alguns casos, de chaves de API.
 

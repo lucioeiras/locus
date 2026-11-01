@@ -4,12 +4,15 @@ import { Disc, Quote } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { ItemCard } from '@/components/cards/ItemCard';
 import { MarkdownNote } from '@/components/card/MarkdownNote';
+import { ItemCard } from '@/components/cards/ItemCard';
 import { VinylRecord } from '@/components/effects/VinylRecord';
-import type { LibraryItem } from '@/lib/library/types';
-import { MusicPreviewPlayer } from './MusicPreviewPlayer';
 import { translate, useLocalization } from '@/lib/i18n';
+import type { LibraryItem } from '@/lib/library/types';
+import { ImageViewerModal } from '@/components/card/ImageViewerModal';
+import { MusicPreviewPlayer } from './MusicPreviewPlayer';
+
+type ImageSourceRect = { x: number; y: number; width: number; height: number };
 
 type CardPreviewProps = {
   item: LibraryItem;
@@ -37,6 +40,9 @@ export function CardPreview({
   const displayItem: LibraryItem =
     title && 'title' in item ? ({ ...item, title } as LibraryItem) : item;
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const [imageViewerUri, setImageViewerUri] = useState<string | null>(null);
+  const [imageSourceRect, setImageSourceRect] = useState<ImageSourceRect | null>(null);
+  const imageCardRef = useRef<View>(null);
   const musicPlayerRef = useRef<{
     play: () => void;
     pause: () => void;
@@ -47,6 +53,16 @@ export function CardPreview({
     if (musicPlayerRef.current.playing) musicPlayerRef.current.pause();
     else musicPlayerRef.current.play();
   }, []);
+  const handleOpenImage = useCallback((uri: string, source: View | null) => {
+    setImageViewerUri(uri);
+    if (typeof source?.measureInWindow !== 'function') return;
+    source.measureInWindow((x, y, width, height) => {
+      setImageSourceRect({ x, y, width, height });
+    });
+  }, []);
+  const handleOpenSavedImage = useCallback(() => {
+    handleOpenImage(item.type === 'image' ? item.image : '', imageCardRef.current);
+  }, [handleOpenImage, item]);
   return (
     <View
       className={`w-full px-6 py-8 min-h-[300px] relative ${
@@ -134,8 +150,27 @@ export function CardPreview({
       )}
 
       {!isNoteOrQuote && !isMusic && (
-        <View className="w-full max-w-sm">
-          <ItemCard item={displayItem} hideTitleAndAuthor showAudioPlaybackRate />
+        <View ref={item.type === 'image' ? imageCardRef : undefined} className="w-full max-w-sm">
+          {item.type === 'image' ? (
+            <ItemCard
+              item={displayItem}
+              hideTitleAndAuthor
+              showAudioPlaybackRate
+              showImageCarousel={item.type === 'image'}
+              onPress={handleOpenSavedImage}
+              accessibilityLabel={translate('Open image')}
+              accessibilityHint={translate('Opens image preview with zoom controls')}
+            />
+          ) : (
+            <ItemCard
+              item={displayItem}
+              hideTitleAndAuthor
+              showAudioPlaybackRate
+              onImagePress={
+                item.type === 'tweet' || item.type === 'reddit' ? handleOpenImage : undefined
+              }
+            />
+          )}
         </View>
       )}
 
@@ -163,6 +198,21 @@ export function CardPreview({
             <MarkdownNote markdown={editedText} onMarkdownChange={onTextChange} />
           )}
         </View>
+      )}
+      {imageViewerUri && (
+        <ImageViewerModal
+          uri={imageViewerUri}
+          visible
+          sourceRect={imageSourceRect}
+          images={
+            item.type === 'tweet'
+              ? item.images
+              : item.type === 'image'
+                ? (item.images ?? [item.image])
+                : undefined
+          }
+          onClose={() => setImageViewerUri(null)}
+        />
       )}
     </View>
   );

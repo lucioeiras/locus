@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: Astera app E2E
+name: Locus app E2E
 tags:
   - e2e
   - mobile

@@ -11,7 +11,7 @@ import {
 } from './palette';
 
 export { palettes, type ThemeColors, type ThemePreference } from './palette';
-export const THEME_STORAGE_KEY = '@astera_theme_preference';
+export const THEME_STORAGE_KEY = '@locus_theme_preference';
 
 // Load native storage only when the provider mounts, matching localization.
 function getStorage() {

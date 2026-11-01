@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import AsteraLibraryAccessModule from '@/../modules/astera-library-access/src/AsteraLibraryAccessModule';
+import LocusLibraryAccessModule from '@/../modules/locus-library-access/src/LocusLibraryAccessModule';
 import type { LibraryItemType } from '@/lib/library/types';
 
 export type AutoTagInput = {
@@ -1075,10 +1075,10 @@ function getNativeEntities(text: string): string[] {
   if (Platform.OS !== 'ios') return [];
   try {
     if (
-      AsteraLibraryAccessModule &&
-      typeof AsteraLibraryAccessModule.extractEntitiesAndTags === 'function'
+      LocusLibraryAccessModule &&
+      typeof LocusLibraryAccessModule.extractEntitiesAndTags === 'function'
     ) {
-      return AsteraLibraryAccessModule.extractEntitiesAndTags(text) || [];
+      return LocusLibraryAccessModule.extractEntitiesAndTags(text) || [];
     }
   } catch {
     // fallback gracefully

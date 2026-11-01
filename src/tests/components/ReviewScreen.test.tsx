@@ -246,6 +246,15 @@ it.each(['in-progress', 'completed'] as const)(
   }
 );
 
+it('excludes archived cards from review and its background previews', async () => {
+  ready([first, { ...book('want'), archivedAt: '2026-10-30T12:00:00.000Z' }]);
+  await renderReview();
+
+  expect(screen.queryByTestId('review-background-card-book')).toBeNull();
+  expect(screen.queryByText('Book')).toBeNull();
+  expect(within(screen.getByTestId('review-current-card')).getByText('first')).toBeTruthy();
+});
+
 it.each(['want', 'abandoned', undefined] as const)(
   'keeps cards with status %s eligible for review',
   async (status) => {

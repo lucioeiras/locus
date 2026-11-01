@@ -2,7 +2,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { cssInterop } from 'nativewind';
 import { TwitterLogoIcon } from 'phosphor-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LocalizedText } from '@/components/LocalizedText';
@@ -66,6 +66,7 @@ type TweetProps = {
   hideMedia?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
+  onImagePress?: (uri: string, source: View | null) => void;
 };
 
 export const TweetCard = ({
@@ -78,9 +79,11 @@ export const TweetCard = ({
   hideMedia = false,
   onPress,
   onLongPress,
+  onImagePress,
 }: TweetProps) => {
   const { isDark } = useAppTheme();
   const [aspectRatio, setAspectRatio] = useState(1);
+  const singleImageRef = useRef<View>(null);
   const cleanText = text ? decodeHTML(text) : '';
   const hasMultipleImages = images.length > 1;
 
@@ -142,12 +145,16 @@ export const TweetCard = ({
         {/* Single Image */}
         {!hideMedia && !video && images.length === 1 && (
           <Pressable
-            onPress={onPress}
+            ref={singleImageRef}
+            testID="tweet-post-image-0"
+            onPress={onImagePress ? () => onImagePress(images[0], singleImageRef.current) : onPress}
             onLongPress={onLongPress}
             delayLongPress={350}
-            disabled={!onPress && !onLongPress}
+            disabled={!onPress && !onLongPress && !onImagePress}
             style={({ pressed }) =>
-              pressed && onPress ? { opacity: 0.85, transform: [{ scale: 0.98 }] } : undefined
+              pressed && (onPress || onImagePress)
+                ? { opacity: 0.85, transform: [{ scale: 0.98 }] }
+                : undefined
             }
           >
             <ExpoImage
@@ -185,23 +192,30 @@ export const TweetCard = ({
                 />
               );
 
-              if (onPress || onLongPress) {
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={onPress}
-                    onLongPress={onLongPress}
-                    delayLongPress={350}
-                    style={({ pressed }) =>
-                      pressed ? { opacity: 0.85, transform: [{ scale: 0.98 }] } : undefined
-                    }
+              const imageRef = { current: null as View | null };
+              return (
+                <Pressable
+                  key={index}
+                  testID={`tweet-post-image-${index}`}
+                  onPress={onImagePress ? () => onImagePress(img, imageRef.current) : onPress}
+                  onLongPress={onLongPress}
+                  delayLongPress={350}
+                  disabled={!onPress && !onLongPress && !onImagePress}
+                  style={({ pressed }) =>
+                    pressed && (onPress || onLongPress || onImagePress)
+                      ? { opacity: 0.85, transform: [{ scale: 0.98 }] }
+                      : undefined
+                  }
+                >
+                  <View
+                    ref={(node) => {
+                      imageRef.current = node;
+                    }}
                   >
                     {imageElement}
-                  </Pressable>
-                );
-              }
-
-              return <View key={index}>{imageElement}</View>;
+                  </View>
+                </Pressable>
+              );
             })}
           </ScrollView>
         )}

@@ -74,12 +74,12 @@ describe('app localization', () => {
     fireEvent.press(view.getByTestId('select-english'));
     await waitFor(() => expect(view.getByTestId('language').props.children).toBe('en'));
     expect(view.getByText('A photo or video')).toBeTruthy();
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('@astera_language_preference', 'en');
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('@locus_language_preference', 'en');
 
     fireEvent.press(view.getByTestId('select-system'));
     await waitFor(() => expect(view.getByTestId('preference').props.children).toBe('system'));
     expect(view.getByTestId('language').props.children).toBe('pt');
-    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('@astera_language_preference');
+    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('@locus_language_preference');
   });
 
   it('keeps the English and Portuguese catalogs in sync for app-authored UI strings', () => {
@@ -109,14 +109,14 @@ describe('app localization', () => {
   });
 });
 
-it.each(['en', 'pt'] as const)('uses Astera in %s app branding', (language) => {
+it.each(['en', 'pt'] as const)('uses Locus in %s app branding', (language) => {
   setActiveLanguage(language);
   for (const key of [
-    'Choose the appearance used by Astera.',
-    'Choose the language used by Astera.',
-    'Astera is offline-first and believes files should remain under your control.',
+    'Choose the appearance used by Locus.',
+    'Choose the language used by Locus.',
+    'Locus is offline-first and believes files should remain under your control.',
   ]) {
-    expect(translate(key)).toContain('Astera');
+    expect(translate(key)).toContain('Locus');
   }
   setActiveLanguage('en');
 });

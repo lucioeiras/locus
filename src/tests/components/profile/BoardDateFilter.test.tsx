@@ -62,9 +62,20 @@ jest.mock('@/hooks/useLibrary', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-reanimated', () => ({
-  useAnimatedRef: () => ({ current: null }),
-}));
+jest.mock('react-native-reanimated', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const transition = { duration: () => undefined };
+
+  return {
+    __esModule: true,
+    default: { View },
+    FadeInDown: transition,
+    LinearTransition: transition,
+    useAnimatedRef: () => ({ current: null }),
+    useAnimatedStyle: () => ({}),
+    withTiming: (value: number) => value,
+  };
+});
 jest.mock('react-native-sortables', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Pressable: TestPressable, View: TestView } =
@@ -101,16 +112,20 @@ jest.mock('@shopify/flash-list', () => ({
         React.useImperativeHandle(ref, () => ({
           scrollToOffset: (...args: unknown[]) => mockScrollToOffset(...args),
         }));
+        const renderListComponent = (component: any) =>
+          React.isValidElement(component)
+            ? component
+            : component
+              ? React.createElement(component)
+              : null;
         return (
           <MockView>
-            <ListHeaderComponent />
-            {data.length ? (
-              data.map((item: LibraryItem) => (
-                <MockView key={item.id}>{renderItem({ item, index: 0 })}</MockView>
-              ))
-            ) : (
-              <ListEmptyComponent />
-            )}
+            {renderListComponent(ListHeaderComponent)}
+            {data.length
+              ? data.map((item: LibraryItem) => (
+                  <MockView key={item.id}>{renderItem({ item, index: 0 })}</MockView>
+                ))
+              : renderListComponent(ListEmptyComponent)}
           </MockView>
         );
       }

@@ -205,7 +205,7 @@ export default function NoteEditorDOM({ ref, ...props }: NoteEditorDOMProps) {
   const { colors } = props;
   return (
     <div
-      className="astera-note-editor"
+      className="locus-note-editor"
       style={
         {
           ...NOTE_EDITOR_TYPOGRAPHY,

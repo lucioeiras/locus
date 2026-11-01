@@ -319,4 +319,93 @@ describe('ItemCard', () => {
     await fireEvent.press(getByText('Gallery post'));
     expect(onPress).toHaveBeenCalledWith(item);
   });
+
+  it('routes a tapped tweet image to the detail image viewer callback', async () => {
+    const item: LibraryItem = {
+      ...base,
+      id: 'tweet-image',
+      type: 'tweet',
+      url: 'https://x.com/user/status/4',
+      author: 'A User',
+      avatar: 'avatar.jpg',
+      text: 'Image post',
+      images: ['tweet.jpg'],
+    };
+    const onImagePress = jest.fn();
+    const { getByTestId } = await render(<ItemCard item={item} onImagePress={onImagePress} />);
+
+    await fireEvent.press(getByTestId('tweet-post-image-0'));
+    expect(onImagePress.mock.calls[0]?.[0]).toBe('tweet.jpg');
+  });
+
+  it('routes the selected image from a tweet gallery to the detail image viewer callback', async () => {
+    const item: LibraryItem = {
+      ...base,
+      id: 'tweet-image-gallery',
+      type: 'tweet',
+      url: 'https://x.com/user/status/5',
+      author: 'A User',
+      avatar: 'avatar.jpg',
+      text: 'Gallery post',
+      images: ['first.jpg', 'second.jpg'],
+    };
+    const onImagePress = jest.fn();
+    const { getByTestId } = await render(<ItemCard item={item} onImagePress={onImagePress} />);
+
+    await fireEvent.press(getByTestId('tweet-post-image-1'));
+    expect(onImagePress.mock.calls[0]?.[0]).toBe('second.jpg');
+  });
+
+  it('routes a Reddit post image to the detail image viewer callback', async () => {
+    const item: LibraryItem = {
+      ...base,
+      id: 'reddit-image',
+      type: 'reddit',
+      url: 'https://reddit.com/r/test/7',
+      subreddit: 'r/test',
+      subredditAvatar: 'reddit.jpg',
+      title: 'Image post',
+      image: 'reddit-post.jpg',
+    };
+    const onImagePress = jest.fn();
+    const { getByTestId } = await render(<ItemCard item={item} onImagePress={onImagePress} />);
+
+    await fireEvent.press(getByTestId('reddit-post-image'));
+    expect(onImagePress.mock.calls[0]?.[0]).toBe('reddit-post.jpg');
+  });
+
+  it('does not offer image zoom for a tweet without an image', async () => {
+    const item: LibraryItem = {
+      ...base,
+      id: 'tweet-no-image',
+      type: 'tweet',
+      url: 'https://x.com/user/status/6',
+      author: 'A User',
+      avatar: 'avatar.jpg',
+      text: 'Text only',
+    };
+    const onImagePress = jest.fn();
+    const view = await render(<ItemCard item={item} onImagePress={onImagePress} />);
+
+    expect(view.queryByTestId('tweet-post-image-0')).toBeNull();
+    expect(onImagePress).not.toHaveBeenCalled();
+  });
+
+  it('does not offer image zoom for a Reddit post with filtered boilerplate art', async () => {
+    const item: LibraryItem = {
+      ...base,
+      id: 'reddit-no-image',
+      type: 'reddit',
+      url: 'https://reddit.com/r/test/6',
+      subreddit: 'r/test',
+      subredditAvatar: 'reddit.jpg',
+      title: 'Text only',
+      image: 'https://redditstatic.com/avatar.png',
+    };
+    const onImagePress = jest.fn();
+    const view = await render(<ItemCard item={item} onImagePress={onImagePress} />);
+
+    expect(view.queryByTestId('reddit-post-image')).toBeNull();
+    expect(onImagePress).not.toHaveBeenCalled();
+  });
 });

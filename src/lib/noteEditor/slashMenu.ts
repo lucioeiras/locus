@@ -11,7 +11,7 @@ import {
 
 type Match = { from: number; to: number; query: string };
 type MenuState = { match: Match | null; dismissed: number | null; index: number };
-const key = new PluginKey<MenuState>('astera-slash-menu');
+const key = new PluginKey<MenuState>('locus-slash-menu');
 let menuSequence = 0;
 
 function findMatch(state: EditorState): Match | null {

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
-export const LINK_OPENING_STORAGE_KEY = '@astera_link_opening_preference';
+export const LINK_OPENING_STORAGE_KEY = '@locus_link_opening_preference';
 export type LinkOpeningPreference = 'device' | 'embedded';
 
 export async function readLinkOpeningPreference(): Promise<LinkOpeningPreference> {

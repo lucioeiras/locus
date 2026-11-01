@@ -10,7 +10,7 @@ Implementação: 28/10/2026. Expo 57, Milkdown/Crepe e kit 7.23.0.
 - `bun run lint`: passou.
 - `bunx tsc --noEmit`: passou.
 - `git diff --check`: passou.
-- Exportação de produção: `EXPO_NO_DOTENV=1 bunx expo export --platform all --output-dir /tmp/astera-milkdown-final` passou para iOS, Android e web. O documento DOM, JavaScript, CSS e fontes fazem parte dos assets locais; não há CDN do editor. Recursos opcionais do Crepe são importados estaticamente, evitando menus não solicitados e fragmentação do bundle DOM nativo.
+- Exportação de produção: `EXPO_NO_DOTENV=1 bunx expo export --platform all --output-dir /tmp/locus-milkdown-final` passou para iOS, Android e web. O documento DOM, JavaScript, CSS e fontes fazem parte dos assets locais; não há CDN do editor. Recursos opcionais do Crepe são importados estaticamente, evitando menus não solicitados e fragmentação do bundle DOM nativo.
 - Build iOS de desenvolvimento: passou e instalou no iPhone 17 Pro com iOS 26.4.1. Foi necessário executar o instalador de artefatos do `llama.rn` e reinstalar os pods: a instalação local inicialmente não tinha `rnllama/rn-llama.h`. Nenhum patch novo foi aplicado ao módulo.
 
 ## Verificação no iOS real do simulador

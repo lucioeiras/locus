@@ -138,7 +138,7 @@ export function CardDetailContent({
   useLocalization();
   const { addTextItem, deleteItem, updateItem, setRelatedItems, searchItems, state, source } =
     useLibrary();
-  const folderStorageKey = `astera:folders:${getSourceId(source)}`;
+  const folderStorageKey = `locus:folders:${getSourceId(source)}`;
   const [savedFolders, setSavedFolders] = useState<{
     key: string;
     names: string[];

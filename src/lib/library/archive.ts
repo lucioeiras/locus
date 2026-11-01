@@ -5,7 +5,7 @@ export const ARCHIVED_TAG = 'Archived';
 export const ARCHIVE_RETENTION_OPTIONS = [0, 7, 30, 90] as const;
 export type ArchiveRetentionDays = (typeof ARCHIVE_RETENTION_OPTIONS)[number];
 
-export const ARCHIVE_RETENTION_STORAGE_KEY = '@astera_archived_retention_days';
+export const ARCHIVE_RETENTION_STORAGE_KEY = '@locus_archived_retention_days';
 
 export function isArchived(item: Pick<LibraryItem, 'archivedAt'>): boolean {
   return typeof item.archivedAt === 'string';

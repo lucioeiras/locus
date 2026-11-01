@@ -87,7 +87,7 @@ export function blockControls(options: {
         boundary: number;
         capture: HTMLElement;
       } | null = null;
-      const scroller = options.root.closest<HTMLElement>('.astera-note-editor');
+      const scroller = options.root.closest<HTMLElement>('.locus-note-editor');
       const preserveScroll = (action: () => void) => {
         const ancestors: { element: HTMLElement; top: number; left: number }[] = [];
         for (

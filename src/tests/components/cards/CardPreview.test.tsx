@@ -1,7 +1,61 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import { CardPreview } from '@/components/card/CardPreview';
-import type { NoteItem } from '@/lib/library/types';
+import type { ImageItem, NoteItem } from '@/lib/library/types';
+
+jest.mock('@/components/card/ImageViewerModal', () => ({
+  __esModule: true,
+  ImageViewerModal: ({
+    visible,
+    uri,
+    images,
+    onClose,
+  }: {
+    visible: boolean;
+    uri: string;
+    images?: string[];
+    onClose: () => void;
+  }) => {
+    const { Pressable, Text } = jest.requireActual('react-native');
+    return visible ? (
+      <Pressable accessibilityRole="button" accessibilityLabel="Close image" onPress={onClose}>
+        <Text>Image preview</Text>
+        <Text>{uri}</Text>
+        {images?.map((image) => (
+          <Text key={image}>{image}</Text>
+        ))}
+      </Pressable>
+    ) : null;
+  },
+}));
+
+jest.mock('@/components/cards/ItemCard', () => {
+  const { Pressable, Text, View } = jest.requireActual('react-native');
+
+  return {
+    ItemCard: ({ item, onPress, onImagePress, accessibilityLabel, accessibilityHint }: any) =>
+      item.type === 'tweet' ? (
+        <View>
+          {item.images?.map((uri: string, index: number) => (
+            <Pressable
+              key={uri}
+              testID={`tweet-post-image-${index}`}
+              onPress={() => onImagePress?.(uri, null)}
+            />
+          ))}
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole={accessibilityLabel ? 'button' : undefined}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          onPress={() => onPress?.(item)}
+        >
+          <Text>{item.type}</Text>
+        </Pressable>
+      ),
+  };
+});
 
 jest.mock('expo-audio', () => ({
   useAudioPlayer: () => ({ play: jest.fn(), pause: jest.fn(), setPlaybackRate: jest.fn() }),
@@ -31,5 +85,114 @@ describe('CardPreview', () => {
     );
 
     expect(getByText('Read later')).toBeTruthy();
+  });
+
+  it('opens and closes the full image preview when the image is pressed', async () => {
+    const item: ImageItem = {
+      id: 'image-1',
+      version: 1,
+      type: 'image',
+      image: 'file:///image.jpg',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { getByRole, getByText, queryByText } = await render(
+      <CardPreview
+        item={item}
+        title=""
+        editedText=""
+        onTextChange={jest.fn()}
+        onTextBlur={jest.fn()}
+        onTextFocus={jest.fn()}
+        onDismissEditingTags={jest.fn()}
+      />
+    );
+
+    expect(queryByText('Image preview')).toBeNull();
+    await fireEvent.press(getByRole('button', { name: 'Open image' }));
+    expect(getByText('Image preview')).toBeTruthy();
+    await fireEvent.press(getByRole('button', { name: 'Close image' }));
+    expect(queryByText('Image preview')).toBeNull();
+  });
+
+  it('passes all images in a grouped image card to the reusable carousel', async () => {
+    const item: ImageItem = {
+      id: 'image-group',
+      version: 1,
+      type: 'image',
+      image: 'file:///first.jpg',
+      images: ['file:///first.jpg', 'file:///second.jpg'],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const view = await render(
+      <CardPreview
+        item={item}
+        title=""
+        editedText=""
+        onTextChange={jest.fn()}
+        onTextBlur={jest.fn()}
+        onTextFocus={jest.fn()}
+        onDismissEditingTags={jest.fn()}
+      />
+    );
+
+    await fireEvent.press(view.getByRole('button', { name: 'Open image' }));
+    expect(view.getAllByText('file:///first.jpg').length).toBeGreaterThan(0);
+    expect(view.getByText('file:///second.jpg')).toBeTruthy();
+  });
+
+  it('does not add the image preview action to other card types', async () => {
+    const item: NoteItem = {
+      id: 'note-2',
+      version: 1,
+      type: 'note',
+      text: 'A note',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { queryByRole } = await render(
+      <CardPreview
+        item={item}
+        title=""
+        editedText={item.text}
+        onTextChange={jest.fn()}
+        onTextBlur={jest.fn()}
+        onTextFocus={jest.fn()}
+        onDismissEditingTags={jest.fn()}
+      />
+    );
+
+    expect(queryByRole('button', { name: 'Open image' })).toBeNull();
+  });
+
+  it('opens the image tapped in a tweet gallery', async () => {
+    const item = {
+      id: 'tweet-gallery',
+      version: 1 as const,
+      type: 'tweet' as const,
+      url: 'https://x.com/user/status/1',
+      author: 'A User',
+      avatar: 'avatar.jpg',
+      text: 'A tweet with images',
+      images: ['first.jpg', 'second.jpg'],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const view = await render(
+      <CardPreview
+        item={item}
+        title=""
+        editedText={item.text}
+        onTextChange={jest.fn()}
+        onTextBlur={jest.fn()}
+        onTextFocus={jest.fn()}
+        onDismissEditingTags={jest.fn()}
+      />
+    );
+
+    await fireEvent.press(view.getByTestId('tweet-post-image-1'));
+    expect(view.getByText('Image preview')).toBeTruthy();
+    expect(view.getAllByText('second.jpg').length).toBeGreaterThan(0);
   });
 });

@@ -32,6 +32,7 @@ import { useFloatingTabOverlay } from '@/components/menus/FloatingTabOverlay';
 import { RestoreToast } from '@/components/menus/RestoreToast';
 import { useLibrary } from '@/hooks/useLibrary';
 import { advanceReviewQueue, createReviewQueue, getReviewSwipeAction } from '@/lib/library/review';
+import { isArchived } from '@/lib/library/archive';
 import { getSourceId, type DeletedItemBackup } from '@/lib/library/storage';
 import type { LibraryItem } from '@/lib/library/types';
 import { LocalizedText } from '@/components/LocalizedText';
@@ -52,8 +53,9 @@ export default function ReviewScreen() {
       state.status === 'ready'
         ? state.result.items.filter(
             (item) =>
-              !('progressStatus' in item) ||
-              (item.progressStatus !== 'in-progress' && item.progressStatus !== 'completed')
+              !isArchived(item) &&
+              (!('progressStatus' in item) ||
+                (item.progressStatus !== 'in-progress' && item.progressStatus !== 'completed'))
           )
         : [],
     [state]

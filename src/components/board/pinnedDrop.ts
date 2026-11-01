@@ -6,6 +6,14 @@ export function schedulePinnedRemoval(onRemove: (itemId: string) => void, itemId
   setTimeout(onRemove, PINNED_DROP_ANIMATION_DURATION + 40, itemId);
 }
 
+export function schedulePinnedReorder(
+  onReorder: (itemId: string, targetIndex: number) => void | Promise<void>,
+  itemId: string,
+  targetIndex: number
+) {
+  setTimeout(onReorder, PINNED_DROP_ANIMATION_DURATION + 40, itemId, targetIndex);
+}
+
 export function getPinnedDropTarget(
   touch: { x: number; y: number },
   container: { x: number; y: number; width: number; height: number },

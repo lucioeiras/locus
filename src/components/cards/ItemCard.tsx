@@ -1,7 +1,7 @@
 import { useAppTheme } from '@/lib/theme';
 import { Check } from 'lucide-react-native';
-import { memo } from 'react';
-import { Pressable, View } from 'react-native';
+import { memo, useCallback, useMemo } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getLinkableTitle, type LinkableItem } from '@/lib/library/links';
 import type { LibraryItem } from '@/lib/library/types';
@@ -33,14 +33,18 @@ type ItemCardProps = {
   stackedAudioControls?: boolean;
   compactTikTokThumbnail?: boolean;
   compactMedia?: boolean;
+  showImageCarousel?: boolean;
   fixedHeight?: number;
   fixedHeightBackgroundColor?: string;
   isEditing?: boolean;
   isSelected?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
   onPress?: (item: LibraryItem) => void;
   onLongPress?: (item: LibraryItem) => void;
   onNoteTextChange?: (itemId: string, text: string) => void;
   onPinnedAspectRatioChange?: (ratio: number) => void;
+  onImagePress?: (uri: string, source: View | null) => void;
 };
 
 /** Maps a library item (from JSON) to the matching card component with edition mode support. */
@@ -53,22 +57,27 @@ export const ItemCard = memo(function ItemCard({
   stackedAudioControls = false,
   compactTikTokThumbnail = false,
   compactMedia = false,
+  showImageCarousel = false,
   fixedHeight,
   fixedHeightBackgroundColor,
   isEditing = false,
   isSelected = false,
+  accessibilityLabel,
+  accessibilityHint,
   onPress,
   onLongPress,
   onNoteTextChange,
   onPinnedAspectRatioChange,
+  onImagePress,
 }: ItemCardProps) {
   const { colors: themeColors } = useAppTheme();
-  const isInteractiveTweet =
-    item.type === 'tweet' &&
-    ((item.images?.length ?? 0) > 1 || Boolean(item.video?.url)) &&
-    !isEditing;
+  const hasInteractiveTweetMedia =
+    item.type === 'tweet' && ((item.images?.length ?? 0) > 1 || Boolean(item.video?.url));
+  const isInteractiveTweet = hasInteractiveTweetMedia && !isEditing;
+  const interactiveTweetPress = isInteractiveTweet ? onPress : undefined;
+  const interactiveTweetLongPress = isInteractiveTweet ? onLongPress : undefined;
 
-  const renderCardContent = () => {
+  const renderCardContent = useCallback(() => {
     switch (item.type) {
       case 'note':
         return (
@@ -93,6 +102,8 @@ export const ItemCard = memo(function ItemCard({
         return (
           <ImageCard
             url={item.image}
+            images={item.images ?? [item.image]}
+            showCarousel={showImageCarousel}
             title={hideTitleAndAuthor ? undefined : item.title}
             onAspectRatioChange={onPinnedAspectRatioChange}
           />
@@ -161,8 +172,11 @@ export const ItemCard = memo(function ItemCard({
             images={item.images}
             video={item.video}
             hideMedia={compactMedia}
-            onPress={isInteractiveTweet && onPress ? () => onPress(item) : undefined}
-            onLongPress={isInteractiveTweet && onLongPress ? () => onLongPress(item) : undefined}
+            onImagePress={onImagePress}
+            onPress={interactiveTweetPress ? () => interactiveTweetPress(item) : undefined}
+            onLongPress={
+              interactiveTweetLongPress ? () => interactiveTweetLongPress(item) : undefined
+            }
           />
         );
       case 'reddit':
@@ -174,6 +188,7 @@ export const ItemCard = memo(function ItemCard({
             text={item.text}
             image={item.image}
             hideMedia={compactMedia}
+            onImagePress={onImagePress}
           />
         );
       case 'book':
@@ -233,7 +248,25 @@ export const ItemCard = memo(function ItemCard({
           />
         );
     }
-  };
+  }, [
+    compactAudioWaveform,
+    compactMedia,
+    showImageCarousel,
+    compactTikTokThumbnail,
+    fixedHeight,
+    hideTitleAndAuthor,
+    interactiveTweetLongPress,
+    interactiveTweetPress,
+    item,
+    linkedItem,
+    onNoteTextChange,
+    onPinnedAspectRatioChange,
+    onImagePress,
+    showAudioPlaybackRate,
+    stackedAudioControls,
+  ]);
+
+  const cardContent = useMemo(renderCardContent, [renderCardContent]);
 
   const cardBody = (
     <View
@@ -258,7 +291,13 @@ export const ItemCard = memo(function ItemCard({
     >
       <View
         testID="item-card-content"
-        className={item.type === 'music' && !fixedHeight ? 'w-full' : 'w-full overflow-hidden'}
+        className={
+          item.type === 'music' && !fixedHeight
+            ? 'w-full'
+            : item.type === 'image' && showImageCarousel
+              ? 'w-full overflow-visible'
+              : 'w-full overflow-hidden'
+        }
         style={{
           ...(fixedHeight
             ? {
@@ -266,10 +305,13 @@ export const ItemCard = memo(function ItemCard({
                 backgroundColor: fixedHeightBackgroundColor ?? themeColors.surface,
               }
             : {}),
-          overflow: item.type === 'music' ? 'visible' : 'hidden',
+          overflow:
+            item.type === 'music' || (item.type === 'image' && showImageCarousel)
+              ? 'visible'
+              : 'hidden',
         }}
       >
-        {renderCardContent()}
+        {cardContent}
       </View>
 
       {isSelected && (
@@ -296,8 +338,20 @@ export const ItemCard = memo(function ItemCard({
     </View>
   );
 
-  if (isInteractiveTweet) {
-    return <View className="w-full">{cardBody}</View>;
+  if (hasInteractiveTweetMedia) {
+    return (
+      <View className="w-full">
+        {cardBody}
+        {!isInteractiveTweet && (onPress || onLongPress) && (
+          <Pressable
+            onPress={onPress ? () => onPress(item) : undefined}
+            onLongPress={onLongPress ? () => onLongPress(item) : undefined}
+            delayLongPress={350}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+      </View>
+    );
   }
 
   return (
@@ -305,6 +359,9 @@ export const ItemCard = memo(function ItemCard({
       onPress={onPress ? () => onPress(item) : undefined}
       onLongPress={onLongPress ? () => onLongPress(item) : undefined}
       delayLongPress={350}
+      accessibilityRole={accessibilityLabel ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       style={({ pressed }) =>
         pressed ? { opacity: 0.85, transform: [{ scale: 0.98 }] } : undefined
       }

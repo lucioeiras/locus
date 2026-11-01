@@ -92,6 +92,17 @@ export function parseItem(raw: unknown): LibraryItem {
   if (item.type === 'tiktok') {
     delete item.progressStatus;
   }
+  if (item.type === 'image') {
+    if (Array.isArray(item.images)) {
+      const images = item.images
+        .filter((image): image is string => typeof image === 'string' && !!image)
+        .slice(0, 10);
+      if (images.length > 1) item.images = images;
+      else delete item.images;
+    } else {
+      delete item.images;
+    }
+  }
   if (item.type === 'quote') {
     if (typeof item.author === 'string') {
       item.author = decodeHTML(item.author);

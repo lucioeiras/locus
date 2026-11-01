@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": { "modules": ["LocusAudioTranscriptionModule"] },
+  "android": { "modules": ["expo.modules.locusaudiotranscription.LocusAudioTranscriptionModule"] }
+}

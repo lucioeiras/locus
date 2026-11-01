@@ -1,27 +1,27 @@
 {
   "expo": {
-    "name": "Astera",
-    "slug": "astera",
+    "name": "Locus",
+    "slug": "locus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "astera",
+    "scheme": "locus",
     "userInterfaceStyle": "automatic",
     "locales": {
       "en": {
         "ios": {
-          "NSCameraUsageDescription": "Astera uses your camera to add images to your library.",
-          "NSMicrophoneUsageDescription": "Allow Astera to access your microphone to record audio.",
-          "NSPhotoLibraryAddUsageDescription": "Astera needs access to save images to your camera roll.",
-          "NSPhotoLibraryUsageDescription": "Astera accesses your photos so you can add images to your library."
+          "NSCameraUsageDescription": "Locus uses your camera to add images to your library.",
+          "NSMicrophoneUsageDescription": "Allow Locus to access your microphone to record audio.",
+          "NSPhotoLibraryAddUsageDescription": "Locus needs access to save images to your camera roll.",
+          "NSPhotoLibraryUsageDescription": "Locus accesses your photos so you can add images to your library."
         }
       },
       "pt-BR": {
         "ios": {
-          "NSCameraUsageDescription": "O Astera usa sua câmera para adicionar imagens à biblioteca.",
-          "NSMicrophoneUsageDescription": "Permita que o Astera acesse o microfone para gravar áudio.",
-          "NSPhotoLibraryAddUsageDescription": "O Astera precisa acessar as fotos para salvar imagens no rolo da câmera.",
-          "NSPhotoLibraryUsageDescription": "O Astera acessa suas fotos para que você possa adicionar imagens à biblioteca."
+          "NSCameraUsageDescription": "O Locus usa sua câmera para adicionar imagens à biblioteca.",
+          "NSMicrophoneUsageDescription": "Permita que o Locus acesse o microfone para gravar áudio.",
+          "NSPhotoLibraryAddUsageDescription": "O Locus precisa acessar as fotos para salvar imagens no rolo da câmera.",
+          "NSPhotoLibraryUsageDescription": "O Locus acessa suas fotos para que você possa adicionar imagens à biblioteca."
         }
       }
     },
@@ -31,10 +31,10 @@
         "light": "./assets/images/icon.png",
         "dark": "./assets/images/icon-dark.png"
       },
-      "bundleIdentifier": "com.diegoeiras.astera",
+      "bundleIdentifier": "com.diegoeiras.locus",
       "requireFullScreen": true,
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.diegoeiras.astera"]
+        "com.apple.security.application-groups": ["group.com.diegoeiras.locus"]
       }
     },
     "android": {
@@ -57,7 +57,7 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "package": "com.diegoeiras.astera"
+      "package": "com.diegoeiras.locus"
     },
     "web": {
       "output": "static",
@@ -74,7 +74,7 @@
           "imageWidth": 160,
           "dark": {
             "backgroundColor": "#09090B",
-            "image": "./assets/images/splash-icon.png"
+            "image": "./assets/images/icon-dark.png"
           }
         }
       ],
@@ -127,7 +127,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow Astera to access your microphone to record audio.",
+          "microphonePermission": "Allow Locus to access your microphone to record audio.",
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false
         }
@@ -155,16 +155,16 @@
               "appExtensions": [
                 {
                   "targetName": "expo-sharing-extension",
-                  "bundleIdentifier": "com.diegoeiras.astera.expo-sharing-extension",
+                  "bundleIdentifier": "com.diegoeiras.locus.expo-sharing-extension",
                   "entitlements": {
-                    "com.apple.security.application-groups": ["group.com.diegoeiras.astera"]
+                    "com.apple.security.application-groups": ["group.com.diegoeiras.locus"]
                   }
                 },
                 {
-                  "bundleIdentifier": "com.diegoeiras.astera.widget",
-                  "targetName": "AsteraControls",
+                  "bundleIdentifier": "com.diegoeiras.locus.widget",
+                  "targetName": "LocusControls",
                   "entitlements": {
-                    "com.apple.security.application-groups": ["group.com.diegoeiras.astera"]
+                    "com.apple.security.application-groups": ["group.com.diegoeiras.locus"]
                   }
                 }
               ]
