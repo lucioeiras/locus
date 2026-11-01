@@ -45,13 +45,30 @@ jobs:
           }
 
           const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-          const failures = report.testResults.flatMap((file) =>
-            (file.assertionResults ?? [])
-              .filter((test) => test.status === 'failed')
-              .map((test) => `- **${test.fullName}** — \`${file.name}\``)
-          );
+          const failures = report.testResults.flatMap((file) => {
+            const failedTests = (file.assertionResults ?? []).filter(
+              (test) => test.status === 'failed'
+            );
+            if (failedTests.length) {
+              return failedTests.map((test) => ({
+                name: test.fullName,
+                file: file.name,
+                message: (test.failureMessages ?? []).join('\n'),
+              }));
+            }
+            return file.status === 'failed'
+              ? [{ name: 'Test suite failed to run', file: file.name, message: file.message ?? '' }]
+              : [];
+          });
+          const failureDetails = failures.map(({ name, file, message }) => {
+            const cleanMessage = message
+              .replace(/\u001b\[[0-9;]*m/g, '')
+              .slice(0, 4000);
+            const truncationNote = message.length > 4000 ? '\n… output truncated …' : '';
+            return `- **${name}** — \`${file}\`\n\n  <details><summary>Failure details</summary>\n\n  \`\`\`\`text\n${cleanMessage}${truncationNote}\n  \`\`\`\`\n\n  </details>`;
+          });
           const summary = failures.length
-            ? `## Failed tests (${failures.length})\n\n${failures.join('\n')}\n`
+            ? `## Failed tests (${failures.length})\n\n${failureDetails.join('\n\n')}\n`
             : '## Tests\n\nAll Jest tests passed.\n';
 
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
