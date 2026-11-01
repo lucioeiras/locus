@@ -9,7 +9,7 @@ import { ItemCard } from '@/components/cards/ItemCard';
 import { VinylRecord } from '@/components/effects/VinylRecord';
 import { translate, useLocalization } from '@/lib/i18n';
 import type { LibraryItem } from '@/lib/library/types';
-import { ImageViewerModal } from './ImageViewerModal';
+import { ImageViewerModal } from '@/components/card/ImageViewerModal';
 import { MusicPreviewPlayer } from './MusicPreviewPlayer';
 
 type ImageSourceRect = { x: number; y: number; width: number; height: number };

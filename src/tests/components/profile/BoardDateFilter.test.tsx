@@ -64,6 +64,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('react-native-reanimated', () => ({
   useAnimatedRef: () => ({ current: null }),
+  useAnimatedStyle: () => ({}),
 }));
 jest.mock('react-native-sortables', () => {
   const React = jest.requireActual<typeof import('react')>('react');
