@@ -202,6 +202,7 @@ export function CardPreview({
           uri={imageViewerUri}
           visible
           sourceRect={imageSourceRect}
+          images={item.type === 'tweet' ? item.images : undefined}
           onClose={() => setImageViewerUri(null)}
         />
       )}
