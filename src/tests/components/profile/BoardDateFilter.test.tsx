@@ -101,16 +101,20 @@ jest.mock('@shopify/flash-list', () => ({
         React.useImperativeHandle(ref, () => ({
           scrollToOffset: (...args: unknown[]) => mockScrollToOffset(...args),
         }));
+        const renderListComponent = (component: any) =>
+          React.isValidElement(component)
+            ? component
+            : component
+              ? React.createElement(component)
+              : null;
         return (
           <MockView>
-            <ListHeaderComponent />
-            {data.length ? (
-              data.map((item: LibraryItem) => (
-                <MockView key={item.id}>{renderItem({ item, index: 0 })}</MockView>
-              ))
-            ) : (
-              <ListEmptyComponent />
-            )}
+            {renderListComponent(ListHeaderComponent)}
+            {data.length
+              ? data.map((item: LibraryItem) => (
+                  <MockView key={item.id}>{renderItem({ item, index: 0 })}</MockView>
+                ))
+              : renderListComponent(ListEmptyComponent)}
           </MockView>
         );
       }

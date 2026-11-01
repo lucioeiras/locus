@@ -27,7 +27,35 @@ jobs:
         run: bun ci
 
       - name: Run tests
-        run: bun run test -- --ci --runInBand
+        id: tests
+        continue-on-error: true
+        run: bun run test -- --ci --runInBand --json --outputFile=jest-results.json
+
+      - name: Add test results to job summary
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const reportPath = 'jest-results.json';
+
+          if (!fs.existsSync(reportPath)) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              '## Test results\n\nJest did not produce a report. Check the test step logs.\n');
+            process.exit(0);
+          }
+
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const failures = report.testResults.flatMap((file) =>
+            (file.assertionResults ?? [])
+              .filter((test) => test.status === 'failed')
+              .map((test) => `- **${test.fullName}** — \`${file.name}\``)
+          );
+          const summary = failures.length
+            ? `## Failed tests (${failures.length})\n\n${failures.join('\n')}\n`
+            : '## Tests\n\nAll Jest tests passed.\n';
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+          NODE
 
       - name: Test real note editor
         run: bun run test:note-editor
@@ -37,3 +65,7 @@ jobs:
 
       - name: Typecheck
         run: bunx tsc --noEmit
+
+      - name: Fail job if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1

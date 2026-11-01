@@ -54,9 +54,9 @@ export function CardPreview({
     else musicPlayerRef.current.play();
   }, []);
   const handleOpenImage = useCallback((uri: string, source: View | null) => {
+    setImageViewerUri(uri);
     source?.measureInWindow((x, y, width, height) => {
       setImageSourceRect({ x, y, width, height });
-      setImageViewerUri(uri);
     });
   }, []);
   const handleOpenSavedImage = useCallback(() => {

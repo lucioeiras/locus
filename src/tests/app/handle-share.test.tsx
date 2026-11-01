@@ -1,6 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
-
 import HandleShareScreen from '@/app/handle-share';
+
+jest.mock('@/../modules/locus-library-access/src/LocusLibraryAccessModule', () => ({
+  __esModule: true,
+  default: { extractEntitiesAndTags: () => [] },
+}));
 
 const mockDismissAll = jest.fn();
 const mockReplace = jest.fn();
