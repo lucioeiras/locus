@@ -34,6 +34,7 @@ type Props = {
   isAudioModalOpen: boolean;
   isFolderPickerOpen: boolean;
   pendingImage: PickedImageAsset | null;
+  pendingImages?: PickedImageAsset[];
   pendingPdf: PickedPdfAsset | null;
   pendingVideo: PickedVideoAsset | null;
   pendingAudio: PickedAudioAsset | null;
@@ -73,6 +74,7 @@ export function BoardAddModals({
   isAudioModalOpen,
   isFolderPickerOpen,
   pendingImage,
+  pendingImages,
   pendingPdf,
   pendingVideo,
   pendingAudio,
@@ -128,6 +130,7 @@ export function BoardAddModals({
       <NewImageModal
         visible={isImageModalOpen}
         imageAsset={pendingImage}
+        imageAssets={pendingImages}
         onClose={() => onClose('image')}
         onDismiss={onDismiss}
       />

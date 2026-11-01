@@ -33,6 +33,7 @@ type ItemCardProps = {
   stackedAudioControls?: boolean;
   compactTikTokThumbnail?: boolean;
   compactMedia?: boolean;
+  showImageCarousel?: boolean;
   fixedHeight?: number;
   fixedHeightBackgroundColor?: string;
   isEditing?: boolean;
@@ -56,6 +57,7 @@ export const ItemCard = memo(function ItemCard({
   stackedAudioControls = false,
   compactTikTokThumbnail = false,
   compactMedia = false,
+  showImageCarousel = false,
   fixedHeight,
   fixedHeightBackgroundColor,
   isEditing = false,
@@ -100,6 +102,8 @@ export const ItemCard = memo(function ItemCard({
         return (
           <ImageCard
             url={item.image}
+            images={item.images ?? [item.image]}
+            showCarousel={showImageCarousel}
             title={hideTitleAndAuthor ? undefined : item.title}
             onAspectRatioChange={onPinnedAspectRatioChange}
           />
@@ -247,6 +251,7 @@ export const ItemCard = memo(function ItemCard({
   }, [
     compactAudioWaveform,
     compactMedia,
+    showImageCarousel,
     compactTikTokThumbnail,
     fixedHeight,
     hideTitleAndAuthor,
@@ -286,7 +291,13 @@ export const ItemCard = memo(function ItemCard({
     >
       <View
         testID="item-card-content"
-        className={item.type === 'music' && !fixedHeight ? 'w-full' : 'w-full overflow-hidden'}
+        className={
+          item.type === 'music' && !fixedHeight
+            ? 'w-full'
+            : item.type === 'image' && showImageCarousel
+              ? 'w-full overflow-visible'
+              : 'w-full overflow-hidden'
+        }
         style={{
           ...(fixedHeight
             ? {
@@ -294,7 +305,10 @@ export const ItemCard = memo(function ItemCard({
                 backgroundColor: fixedHeightBackgroundColor ?? themeColors.surface,
               }
             : {}),
-          overflow: item.type === 'music' ? 'visible' : 'hidden',
+          overflow:
+            item.type === 'music' || (item.type === 'image' && showImageCarousel)
+              ? 'visible'
+              : 'hidden',
         }}
       >
         {cardContent}

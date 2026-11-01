@@ -4,13 +4,13 @@ import { Disc, Quote } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { ItemCard } from '@/components/cards/ItemCard';
 import { MarkdownNote } from '@/components/card/MarkdownNote';
+import { ItemCard } from '@/components/cards/ItemCard';
 import { VinylRecord } from '@/components/effects/VinylRecord';
-import type { LibraryItem } from '@/lib/library/types';
-import { MusicPreviewPlayer } from './MusicPreviewPlayer';
-import { ImageViewerModal } from './ImageViewerModal';
 import { translate, useLocalization } from '@/lib/i18n';
+import type { LibraryItem } from '@/lib/library/types';
+import { ImageViewerModal } from './ImageViewerModal';
+import { MusicPreviewPlayer } from './MusicPreviewPlayer';
 
 type ImageSourceRect = { x: number; y: number; width: number; height: number };
 
@@ -155,6 +155,7 @@ export function CardPreview({
               item={displayItem}
               hideTitleAndAuthor
               showAudioPlaybackRate
+              showImageCarousel={item.type === 'image'}
               onPress={handleOpenSavedImage}
               accessibilityLabel={translate('Open image')}
               accessibilityHint={translate('Opens image preview with zoom controls')}
@@ -202,7 +203,13 @@ export function CardPreview({
           uri={imageViewerUri}
           visible
           sourceRect={imageSourceRect}
-          images={item.type === 'tweet' ? item.images : undefined}
+          images={
+            item.type === 'tweet'
+              ? item.images
+              : item.type === 'image'
+                ? (item.images ?? [item.image])
+                : undefined
+          }
           onClose={() => setImageViewerUri(null)}
         />
       )}

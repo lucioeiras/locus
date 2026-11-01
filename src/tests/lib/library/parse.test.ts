@@ -42,6 +42,32 @@ describe('parseItem', () => {
     }
   });
 
+  it('preserves grouped image references and keeps legacy single-image cards valid', () => {
+    const legacy = parseItem({ ...base, type: 'image', image: 'images/one.jpg' });
+    expect(legacy).toMatchObject({ image: 'images/one.jpg' });
+    expect(legacy).not.toHaveProperty('images');
+
+    expect(
+      parseItem({
+        ...base,
+        type: 'image',
+        image: 'images/one.jpg',
+        images: ['images/one.jpg', 'images/two.png'],
+      })
+    ).toMatchObject({ images: ['images/one.jpg', 'images/two.png'] });
+  });
+
+  it('filters invalid grouped image references and caps the list at ten', () => {
+    const parsed = parseItem({
+      ...base,
+      type: 'image',
+      image: 'images/one.jpg',
+      images: [null, ...Array.from({ length: 12 }, (_, index) => `images/${index}.jpg`)],
+    });
+    expect(parsed.type === 'image' ? parsed.images : undefined).toHaveLength(10);
+    expect(parsed.type === 'image' ? parsed.images?.[0] : undefined).toBe('images/0.jpg');
+  });
+
   it('decodes text fields, drops invalid linked ids, and keeps valid links', () => {
     expect(
       parseItem({

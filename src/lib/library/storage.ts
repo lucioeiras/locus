@@ -455,7 +455,7 @@ export function resolveImages(item: LibraryItem, root: Directory): LibraryItem {
   const r = (ref: ImageRef) => resolveImageRef(ref, root);
   switch (item.type) {
     case 'image':
-      return { ...item, image: r(item.image) };
+      return { ...item, image: r(item.image), images: item.images?.map(r) };
     case 'pdf':
       return { ...item, pdf: resolvePdfRef(item.pdf, root) };
     case 'video':
@@ -673,6 +673,7 @@ export type PickedImageAsset = {
   uri: string;
   fileName?: string | null;
   mimeType?: string | null;
+  assetId?: string | null;
 };
 
 export type AddImageOptions = {
@@ -688,9 +689,11 @@ export type AddImageOptions = {
  */
 export async function addImageToLibrary(
   source: LibrarySource,
-  asset: PickedImageAsset,
+  asset: PickedImageAsset | PickedImageAsset[],
   options?: AddImageOptions
 ): Promise<ImageItem> {
+  const assets = Array.isArray(asset) ? asset.slice(0, 10) : [asset];
+  if (assets.length === 0) throw new Error('Select at least one image.');
   const root = getLibraryDirectory(source);
   if (!root.exists) {
     root.create({ intermediates: true, idempotent: true });
@@ -703,51 +706,51 @@ export async function addImageToLibrary(
 
   const id = generateId();
 
-  // Determine file extension
-  let ext = 'jpg';
-  if (asset.fileName && asset.fileName.includes('.')) {
-    const parts = asset.fileName.split('.');
-    const potentialExt = parts[parts.length - 1].toLowerCase();
-    if (potentialExt && potentialExt.length <= 5 && /^[a-z0-9]+$/.test(potentialExt)) {
-      ext = potentialExt;
+  const getExtension = (asset: PickedImageAsset) => {
+    let ext = 'jpg';
+    if (asset.fileName && asset.fileName.includes('.')) {
+      const parts = asset.fileName.split('.');
+      const potentialExt = parts[parts.length - 1].toLowerCase();
+      if (potentialExt && potentialExt.length <= 5 && /^[a-z0-9]+$/.test(potentialExt)) {
+        ext = potentialExt;
+      }
+    } else if (asset.mimeType) {
+      const mimeMap: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+        'image/heic': 'heic',
+        'image/heif': 'heif',
+        'image/svg+xml': 'svg',
+      };
+      if (mimeMap[asset.mimeType]) ext = mimeMap[asset.mimeType];
+    } else if (asset.uri.includes('.')) {
+      const cleanUri = asset.uri.split('?')[0];
+      const parts = cleanUri.split('.');
+      const potentialExt = parts[parts.length - 1].toLowerCase();
+      if (potentialExt && potentialExt.length <= 5 && /^[a-z0-9]+$/.test(potentialExt)) {
+        ext = potentialExt;
+      }
     }
-  } else if (asset.mimeType) {
-    const mimeMap: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-      'image/gif': 'gif',
-      'image/heic': 'heic',
-      'image/heif': 'heif',
-      'image/svg+xml': 'svg',
-    };
-    if (mimeMap[asset.mimeType]) {
-      ext = mimeMap[asset.mimeType];
+    return ext;
+  };
+  const relativeImagePaths: string[] = [];
+  for (const [index, pickedAsset] of assets.entries()) {
+    const imageFileName = `${id}${index ? `-${index + 1}` : ''}.${getExtension(pickedAsset)}`;
+    const targetImageFile = new File(imagesDir, imageFileName);
+    const sourceFile = new File(pickedAsset.uri);
+    try {
+      await sourceFile.copy(targetImageFile, { overwrite: true });
+    } catch (copyError) {
+      console.warn('sourceFile.copy failed, using arrayBuffer copy fallback', copyError);
+      const buffer = await sourceFile.arrayBuffer();
+      if (!targetImageFile.exists) {
+        targetImageFile.create({ intermediates: true, overwrite: true });
+      }
+      targetImageFile.write(new Uint8Array(buffer));
     }
-  } else if (asset.uri.includes('.')) {
-    const cleanUri = asset.uri.split('?')[0];
-    const parts = cleanUri.split('.');
-    const potentialExt = parts[parts.length - 1].toLowerCase();
-    if (potentialExt && potentialExt.length <= 5 && /^[a-z0-9]+$/.test(potentialExt)) {
-      ext = potentialExt;
-    }
-  }
-
-  const imageFileName = `${id}.${ext}`;
-  const relativeImagePath = `${IMAGES_DIR}/${imageFileName}`;
-
-  const sourceFile = new File(asset.uri);
-  const targetImageFile = new File(imagesDir, imageFileName);
-
-  try {
-    await sourceFile.copy(targetImageFile, { overwrite: true });
-  } catch (copyError) {
-    console.warn('sourceFile.copy failed, using arrayBuffer copy fallback', copyError);
-    const buffer = await sourceFile.arrayBuffer();
-    if (!targetImageFile.exists) {
-      targetImageFile.create({ intermediates: true, overwrite: true });
-    }
-    targetImageFile.write(new Uint8Array(buffer));
+    relativeImagePaths.push(`${IMAGES_DIR}/${imageFileName}`);
   }
 
   const now = new Date().toISOString();
@@ -760,7 +763,8 @@ export async function addImageToLibrary(
     id,
     version: SCHEMA_VERSION,
     type: 'image',
-    image: relativeImagePath,
+    image: relativeImagePaths[0],
+    ...(relativeImagePaths.length > 1 ? { images: relativeImagePaths } : {}),
     ...(trimmedTitle ? { title: trimmedTitle } : {}),
     ...(trimmedNote ? { note: trimmedNote } : {}),
     ...(tags && tags.length > 0 ? { tags } : {}),

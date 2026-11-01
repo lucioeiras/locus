@@ -7,10 +7,12 @@ jest.mock('@/components/card/ImageViewerModal', () => ({
   ImageViewerModal: ({
     visible,
     uri,
+    images,
     onClose,
   }: {
     visible: boolean;
     uri: string;
+    images?: string[];
     onClose: () => void;
   }) => {
     const { Pressable, Text } = jest.requireActual('react-native');
@@ -18,6 +20,9 @@ jest.mock('@/components/card/ImageViewerModal', () => ({
       <Pressable accessibilityRole="button" accessibilityLabel="Close image" onPress={onClose}>
         <Text>Image preview</Text>
         <Text>{uri}</Text>
+        {images?.map((image) => (
+          <Text key={image}>{image}</Text>
+        ))}
       </Pressable>
     ) : null;
   },
@@ -79,6 +84,33 @@ describe('CardPreview', () => {
     expect(getByText('Image preview')).toBeTruthy();
     fireEvent.press(getByRole('button', { name: 'Close image' }));
     expect(queryByText('Image preview')).toBeNull();
+  });
+
+  it('passes all images in a grouped image card to the reusable carousel', async () => {
+    const item: ImageItem = {
+      id: 'image-group',
+      version: 1,
+      type: 'image',
+      image: 'file:///first.jpg',
+      images: ['file:///first.jpg', 'file:///second.jpg'],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const view = await render(
+      <CardPreview
+        item={item}
+        title=""
+        editedText=""
+        onTextChange={jest.fn()}
+        onTextBlur={jest.fn()}
+        onTextFocus={jest.fn()}
+        onDismissEditingTags={jest.fn()}
+      />
+    );
+
+    fireEvent.press(view.getByRole('button', { name: 'Open image' }));
+    expect(view.getByText('file:///first.jpg')).toBeTruthy();
+    expect(view.getByText('file:///second.jpg')).toBeTruthy();
   });
 
   it('does not add the image preview action to other card types', async () => {
