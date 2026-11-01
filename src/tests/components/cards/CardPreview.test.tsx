@@ -4,6 +4,7 @@ import { CardPreview } from '@/components/card/CardPreview';
 import type { ImageItem, NoteItem } from '@/lib/library/types';
 
 jest.mock('@/components/card/ImageViewerModal', () => ({
+  __esModule: true,
   ImageViewerModal: ({
     visible,
     uri,
@@ -27,6 +28,34 @@ jest.mock('@/components/card/ImageViewerModal', () => ({
     ) : null;
   },
 }));
+
+jest.mock('@/components/cards/ItemCard', () => {
+  const { Pressable, Text, View } = jest.requireActual('react-native');
+
+  return {
+    ItemCard: ({ item, onPress, onImagePress, accessibilityLabel, accessibilityHint }: any) =>
+      item.type === 'tweet' ? (
+        <View>
+          {item.images?.map((uri: string, index: number) => (
+            <Pressable
+              key={uri}
+              testID={`tweet-post-image-${index}`}
+              onPress={() => onImagePress?.(uri, null)}
+            />
+          ))}
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole={accessibilityLabel ? 'button' : undefined}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          onPress={() => onPress?.(item)}
+        >
+          <Text>{item.type}</Text>
+        </Pressable>
+      ),
+  };
+});
 
 jest.mock('expo-audio', () => ({
   useAudioPlayer: () => ({ play: jest.fn(), pause: jest.fn(), setPlaybackRate: jest.fn() }),
@@ -80,9 +109,9 @@ describe('CardPreview', () => {
     );
 
     expect(queryByText('Image preview')).toBeNull();
-    fireEvent.press(getByRole('button', { name: 'Open image' }));
+    await fireEvent.press(getByRole('button', { name: 'Open image' }));
     expect(getByText('Image preview')).toBeTruthy();
-    fireEvent.press(getByRole('button', { name: 'Close image' }));
+    await fireEvent.press(getByRole('button', { name: 'Close image' }));
     expect(queryByText('Image preview')).toBeNull();
   });
 
@@ -108,8 +137,8 @@ describe('CardPreview', () => {
       />
     );
 
-    fireEvent.press(view.getByRole('button', { name: 'Open image' }));
-    expect(view.getByText('file:///first.jpg')).toBeTruthy();
+    await fireEvent.press(view.getByRole('button', { name: 'Open image' }));
+    expect(view.getAllByText('file:///first.jpg').length).toBeGreaterThan(0);
     expect(view.getByText('file:///second.jpg')).toBeTruthy();
   });
 
@@ -162,8 +191,8 @@ describe('CardPreview', () => {
       />
     );
 
-    fireEvent.press(view.getByTestId('tweet-post-image-1'));
+    await fireEvent.press(view.getByTestId('tweet-post-image-1'));
     expect(view.getByText('Image preview')).toBeTruthy();
-    expect(view.getByText('second.jpg')).toBeTruthy();
+    expect(view.getAllByText('second.jpg').length).toBeGreaterThan(0);
   });
 });

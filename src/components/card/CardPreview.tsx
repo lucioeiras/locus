@@ -55,7 +55,8 @@ export function CardPreview({
   }, []);
   const handleOpenImage = useCallback((uri: string, source: View | null) => {
     setImageViewerUri(uri);
-    source?.measureInWindow((x, y, width, height) => {
+    if (typeof source?.measureInWindow !== 'function') return;
+    source.measureInWindow((x, y, width, height) => {
       setImageSourceRect({ x, y, width, height });
     });
   }, []);
